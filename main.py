@@ -1,15 +1,19 @@
-from decision_logic import DecisionLogic
-import keyboard  # Import für Tastaturerkennung
-import threading  # Für parallele Threads
+import sys  # Für die Steuerung des Programms
+import threading  # Für paralleles Ausführen der Objekterkennung
+from PyQt6.QtWidgets import QApplication  # Für die GUI
+from decision_logic import DecisionLogic  # Steuerung der Erkennung & Relais
+from GUI import GUIApp  # Die grafische Benutzeroberfläche
 
 if __name__ == "__main__":
     logic = DecisionLogic()
-    detection_thread = threading.Thread(target=logic.start)
+
+    # Startet die GUI direkt im Hauptthread (wichtig für PyQt)
+    app = QApplication(sys.argv)
+    window = GUIApp(logic)
+    window.show()
+
+    # Startet die Erkennung als separaten Thread, aber erst nach ROI-Setzung!
+    detection_thread = threading.Thread(target=logic.start_detection)
     detection_thread.start()
 
-    print("Drücke ESC, um das Programm zu beenden.")
-    keyboard.wait("esc")  # Wartet, bis die Escape-Taste gedrückt wird
-
-    print("Beende das Programm...")
-    logic.detector.stop()  # Stoppt die Objekterkennung
-    detection_thread.join()  # Wartet auf das Beenden des Threads
+    sys.exit(app.exec())  # Startet die GUI-Eventloop

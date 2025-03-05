@@ -11,7 +11,7 @@ class RelaisControl:
         self.get_hid_usb_relay()  # Ruft die Geräteerkennung auf
         self.open_device()  # Öffnet das Gerät
 
-    def get_hid_usb_relay(self): #Sucht nach einem USB-Relais mit den gegebenen Vendor und Device IDs.
+    def get_hid_usb_relay(self): #Sucht nach einem USB-Relais mit den gegebenen Vendor und Device IDs."""
         filter = hid.HidDeviceFilter(vendor_id=self.vendor_id, product_id=self.device_id)
         devices = filter.get_devices()
         if devices:

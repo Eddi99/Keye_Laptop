@@ -9,16 +9,14 @@ class ObjectDetection:
         self.cap.set(4, 720)  # Setzt die Höhe des Kamera-Frames auf 720 Pixel
         self.model = YOLO(model_path)  # Lädt das YOLO-Modell für Objekterkennung
         self.target_object = "person"  # Definiert das Zielobjekt als "Person"
-        self.running = True  # Kontrollvariable für das Hauptprogramm
+        self.running = False  # Kontrollvariable für das Hauptprogramm (Start erst nach GUI-Klick)
 
-        # Erste ROI (Region of Interest)
-        self.zone1_x_min, self.zone1_x_max = 0.4, 0.6  # X-Bereich der ersten ROI
-        self.zone1_y_min, self.zone1_y_max = 0.3, 0.7  # Y-Bereich der ersten ROI
+        # ROIs als Platzhalter
+        self.roi1 = None
+        self.roi2 = None
 
-        # Zweite ROI
-        self.zone2_x_min, self.zone2_x_max = 0.1, 0.3  # X-Bereich der zweiten ROI
-        self.zone2_y_min, self.zone2_y_max = 0.2, 0.5  # Y-Bereich der zweiten ROI
-
+        self.object_in_zone1 = False
+        self.object_in_zone2 = False
         self.in_zone1_frames = 0  # Anzahl erkannter Frames in der ersten ROI
         self.out_zone1_frames = 0  # Anzahl der nicht erkannten Frames in der ersten ROI
         self.in_zone2_frames = 0  # Anzahl erkannter Frames in der zweiten ROI
@@ -27,57 +25,111 @@ class ObjectDetection:
         self.callback = None  # Speichert die Callback-Funktion
 
     def set_callback(self, callback):
-        self.callback = callback  # Setzt die externe Callback-Funktion
+        """Setzt eine externe Callback-Funktion für erkannte Objekte."""
+        self.callback = callback
+
+    def set_rois(self, roi1, roi2):
+        """Speichert die ROIs für die Erkennung."""
+        self.roi1 = roi1
+        self.roi2 = roi2
+        print("ROIs für die Erkennung aktualisiert:", roi1, roi2)
 
     def detect_objects(self, frame):
-        results = self.model(frame, imgsz=320, verbose=False)  # Führt die Objekterkennung aus, durch verbose werden bei jedem Frame die Daten zur Objekterkennung ausgegeben
-        detections = results[0].boxes.data.cpu().numpy()  # Extrahiert die erkannten Objekte
+        """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""
+        results = self.model(frame, imgsz=320, verbose=False)
+        detections = results[0].boxes.data.cpu().numpy()  # Extrahiert erkannte Objekte
 
-        object_in_zone1 = any(
-            self.zone1_x_min <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.zone1_x_max and
-            self.zone1_y_min <= (det[1] + det[3]) / 2 / frame.shape[0]
-            for det in detections)  # Prüft, ob ein Objekt in der ersten ROI ist
+        if self.roi1 and self.roi2:
+            for det in detections:
+                x_min, y_min, x_max, y_max, conf, cls = det[:6]
+                label = self.model.names[int(cls)]  # Klassenname des Objekts
 
-        object_in_zone2 = any(
-            self.zone2_x_min <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.zone2_x_max and
-            self.zone2_y_min <= (det[1] + det[3]) / 2 / frame.shape[0]
-            for det in detections)  # Prüft, ob ein Objekt in der zweiten ROI ist
+                if label == self.target_object:  # Prüfe, ob das erkannte Objekt eine Person ist
+                    print("ROI1-X: ",self.roi1[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi1[2])
+                    #print("ROI1-Y: ", self.roi1[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi1[3])
+                    #print("ROI2-X: ", self.roi2[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi2[2])
+                    #print("ROI2-Y: ", self.roi2[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi2[3])
 
-        if object_in_zone1 or object_in_zone2:
-            if object_in_zone1:
-                self.in_zone1_frames += 1
-                self.out_zone1_frames = 0
-            if object_in_zone2:
-                self.in_zone2_frames += 1
-                self.out_zone2_frames = 0
+                    self.object_in_zone1 = any(
+                        self.roi1[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi1[2] and
+                        self.roi1[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi1[3]
+                        for det in detections if label == self.target_object
+                    )
+                    '''self.object_in_zone2 = any(
+                        self.roi2[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi2[2] and
+                        self.roi2[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi2[3]
+                        for det in detections if label == self.target_object
+                    )'''
 
-            if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active:
-                self.is_active = True
-                print("Person detected in ROI - Alarm triggered!")
-                if self.callback:
-                    self.callback(True)
-        else:
-            self.out_zone1_frames += 1
-            self.in_zone1_frames = 0
-            self.out_zone2_frames += 1
-            self.in_zone2_frames = 0
+            if self.object_in_zone1 or self.object_in_zone2:
+                if self.object_in_zone1:
+                    self.in_zone1_frames += 1
+                    self.out_zone1_frames = 0
+                '''if self.object_in_zone2:
+                    self.in_zone2_frames += 1
+                    self.out_zone2_frames = 0'''
 
-            if (self.out_zone1_frames >= 5 and self.out_zone2_frames >= 5) and self.is_active:
-                self.is_active = False
-                print("No person in ROI - Alarm deactivated!")
-                if self.callback:
-                    self.callback(False)
+                if (self.in_zone1_frames >= 3 or self.in_zone2_frames >= 3) and not self.is_active:
+                    self.is_active = True
+                    print("Person detected in ROI - Alarm triggered!")
+                    if self.callback:
+                        self.callback(True)
+            else:
+                self.out_zone1_frames += 1
+                self.in_zone1_frames = 0
+                self.out_zone2_frames += 1
+                self.in_zone2_frames = 0
+
+                if (self.out_zone1_frames >= 3 and self.out_zone2_frames >= 3) and self.is_active:
+                    self.is_active = False
+                    print("No person in ROI - Alarm deactivated!")
+                    if self.callback:
+                        self.callback(False)
+
+        # Zeichne Bounding Boxes auf dem Kamerabild
+        for det in detections:
+            x_min, y_min, x_max, y_max, conf, cls = det[:6]
+            label = f"{self.model.names[int(cls)]}: {conf:.2f}"
+            cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
+            cv2.putText(frame, label, (int(x_min), int(y_min) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Zeichne die ROIs als Rechtecke
+        height, width, _ = frame.shape
+        roi1_px = (int(self.roi1[0] * width), int(self.roi1[1] * height), int(self.roi1[2] * width),
+                   int(self.roi1[3] * height))
+        #roi2_px = (int(self.roi2[0] * width), int(self.roi2[1] * height), int(self.roi2[2] * width),
+        #          int(self.roi2[3] * height))
+
+        cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Blau für ROI 1
+        #cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Rot für ROI 2
+
+        return frame
 
     def run(self):
-        while self.cap.isOpened() and self.running:  # Prüft, ob die Kamera geöffnet ist und das Programm läuft
-            ret, frame = self.cap.read()  # Liest einen Frame aus der Kamera
-            if not ret:  # Falls kein Frame verfügbar ist, beenden
+        """Startet die Objekterkennung in einer Schleife."""
+        if not self.roi1 or not self.roi2:
+            print("ROIs nicht gesetzt! Starte nicht.")
+            return
+
+        self.running = True
+        print("Erkennung läuft...")
+
+        while self.cap.isOpened() and self.running:
+            ret, frame = self.cap.read()
+            if not ret:
                 break
-            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)  # Spiegelt das Bild und wandelt es in RGB um
-            self.detect_objects(frame_rgb)  # Führt die Objekterkennung aus
-            #cv2.imshow("Webcam YOLO", cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))  # Zeigt das bearbeitete Bild an
-        self.cap.release()  # Gibt die Kamera frei
-        cv2.destroyAllWindows()  # Schließt alle OpenCV-Fenster
+            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+            frame_annotated = self.detect_objects(frame_rgb)
+
+            cv2.imshow("Erkennung", cv2.cvtColor(frame_annotated, cv2.COLOR_RGB2BGR))
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        self.cap.release()
+        cv2.destroyAllWindows()
+        print("Erkennung gestoppt.")
 
     def stop(self):
-        self.running = False  # Setzt die Kontrollvariable, um die Schleife zu beenden
+        """Stoppt die Objekterkennung sicher."""
+        self.running = False
+        print("Erkennung wird gestoppt...")
