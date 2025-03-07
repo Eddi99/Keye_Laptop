@@ -1,4 +1,5 @@
 import cv2  # OpenCV für Bildverarbeitung
+import threading  # Für paralleles Ausführen der Objekterkennung
 from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QAbstractButton  # PyQt6 für GUI-Elemente
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen  # PyQt6 für Bildverarbeitung und Zeichnen
 from PyQt6.QtCore import Qt  # PyQt6 für Fenstersteuerung und Punktkoordinaten
@@ -107,4 +108,10 @@ class GUIApp(QWidget):
                 self.roi_points[3][0] / width, self.roi_points[3][1] / height)
         self.logic.set_rois(roi1, roi2)
         print("ROIs gespeichert:", roi1, roi2)
-        self.close()
+        self.confirm_button.setEnabled(True)  # deaktiviert den confrim_button
+
+        # Startet die Personenerkennung als separaten Thread, aber erst nach ROI-Setzung!
+        print("Detection-Thread startet...")
+        detection_thread = threading.Thread(target=self.logic.start_detection)
+        detection_thread.start()
+        #self.close()

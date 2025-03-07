@@ -1,6 +1,4 @@
 import pywinusb.hid as hid  # Bibliothek für USB-HID-Kommunikation
-from time import sleep  # Für Wartezeiten
-import keyboard  # Für Tastatureingaben
 
 class RelaisControl:
     def __init__(self, vendor_id=0x16c0, device_id=0x05DF):
