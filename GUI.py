@@ -17,6 +17,7 @@ class GUIApp(QWidget):
         self.current_roi = 1  # Speichert, welche ROI aktuell gesetzt wird
         self.label = None  # GUI-Element zur Anzeige des Kamerabilds
         self.confirm_button = None  # Button zum Bestätigen der ROIs
+        self.close_button = None  # Button zum Bestätigen der ROIs
 
         self.initUI()  # Initialisiert die Benutzeroberfläche
 
@@ -32,9 +33,14 @@ class GUIApp(QWidget):
         self.confirm_button.setEnabled(False)  # Deaktiviert den Button initial
         self.confirm_button.clicked.connect(self.confirm_rois)  # Verbindet den Button mit der Bestätigungsfunktion
 
+        self.close_button = QPushButton("Programm beenden", self)  # Erstellt einen Button, der das Programm beendet
+        self.close_button.setEnabled(False)  # Deaktiviert den Button initial
+        self.close_button.clicked.connect(self.close_application)  # Verbindet den Button mit der Programm-beenden-Funktion
+
         layout = QVBoxLayout()  # Erstellt ein vertikales Layout
         layout.addWidget(self.label)  # Fügt das Bildlabel zum Layout hinzu
         layout.addWidget(self.confirm_button)  # Fügt den Bestätigungsbutton zum Layout hinzu
+        layout.addWidget(self.close_button)  # Fügt den Programm-beenden-Button zum Layout hinzu
         self.setLayout(layout)  # Setzt das Layout für das Fenster
 
         self.capture_frame()  # Nimmt ein Standbild von der Kamera auf
@@ -101,17 +107,23 @@ class GUIApp(QWidget):
 
     def confirm_rois(self):
         """Bestätigt die gesetzten ROIs und übergibt sie an die Entscheidungslogik."""
-        width, height, _ = self.image.shape
-        roi1 = (self.roi_points[0][0] / width, self.roi_points[0][1] / height,
+        width, height, _ = self.image.shape # wird benötigt, um ROI-Koordinaten umzurechnen
+        roi1 = (self.roi_points[0][0] / width, self.roi_points[0][1] / height, # ROI Koordinaten in absolute Werte zwischen 0 und 1 umrechnen und speichern
                 self.roi_points[1][0] / width, self.roi_points[1][1] / height)
         roi2 = (self.roi_points[2][0] / width, self.roi_points[2][1] / height,
                 self.roi_points[3][0] / width, self.roi_points[3][1] / height)
-        self.logic.set_rois(roi1, roi2)
         print("ROIs gespeichert:", roi1, roi2)
-        self.confirm_button.setEnabled(True)  # deaktiviert den confrim_button
+        self.confirm_button.setEnabled(False)  # deaktiviert den confrim_button
+        self.close_button.setEnabled(True)  # aktiviert den close_button
 
-        # Startet die Personenerkennung als separaten Thread, aber erst nach ROI-Setzung!
+        self.logic.set_rois(roi1, roi2) # ROI werte an die decision_logic übergeben
+
+        # Startet die Personenerkennung als separaten Thread, damit andere Teile des Programms weiterlaufen können
         print("Detection-Thread startet...")
         detection_thread = threading.Thread(target=self.logic.start_detection)
         detection_thread.start()
-        #self.close()
+
+
+    def close_application(self):
+        self.logic.shutdown()
+        self.close()

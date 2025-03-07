@@ -47,7 +47,7 @@ class ObjectDetection:
                 if label == self.target_object:  # Prüfe, ob das erkannte Objekt eine Person ist
                     print("ROI1-X: ",self.roi1[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi1[2])
                     #print("ROI1-Y: ", self.roi1[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi1[3])
-                    #print("ROI2-X: ", self.roi2[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi2[2])
+                    print("ROI2-X: ", self.roi2[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi2[2])
                     #print("ROI2-Y: ", self.roi2[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi2[3])
 
                     self.object_in_zone1 = any(
@@ -55,19 +55,19 @@ class ObjectDetection:
                         self.roi1[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi1[3]
                         for det in detections if label == self.target_object
                     )
-                    '''self.object_in_zone2 = any(
+                    self.object_in_zone2 = any(
                         self.roi2[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi2[2] and
                         self.roi2[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi2[3]
                         for det in detections if label == self.target_object
-                    )'''
+                    )
 
             if self.object_in_zone1 or self.object_in_zone2:
                 if self.object_in_zone1:
                     self.in_zone1_frames += 1
                     self.out_zone1_frames = 0
-                '''if self.object_in_zone2:
+                if self.object_in_zone2:
                     self.in_zone2_frames += 1
-                    self.out_zone2_frames = 0'''
+                    self.out_zone2_frames = 0
 
                 if (self.in_zone1_frames >= 3 or self.in_zone2_frames >= 3) and not self.is_active:
                     self.is_active = True
@@ -97,11 +97,11 @@ class ObjectDetection:
         height, width, _ = frame.shape
         roi1_px = (int(self.roi1[0] * width), int(self.roi1[1] * height), int(self.roi1[2] * width),
                    int(self.roi1[3] * height))
-        #roi2_px = (int(self.roi2[0] * width), int(self.roi2[1] * height), int(self.roi2[2] * width),
-        #          int(self.roi2[3] * height))
+        roi2_px = (int(self.roi2[0] * width), int(self.roi2[1] * height), int(self.roi2[2] * width),
+                  int(self.roi2[3] * height))
 
         cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Blau für ROI 1
-        #cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Rot für ROI 2
+        cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Rot für ROI 2
 
         return frame
 

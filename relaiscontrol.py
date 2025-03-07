@@ -19,7 +19,7 @@ class RelaisControl:
         if self.device and not self.device.is_opened():
             self.device.open()
             self.get_report()
-            self.on_all() # schaltet das Relais zu anfang direkt an, damit der Sicherheitskreis geschlossen ist
+            #self.on_all() # schaltet das Relais zu anfang direkt an, damit der Sicherheitskreis geschlossen ist
 
     def close_device(self): #Schließt die Verbindung zum USB-Relais, falls es geöffnet ist.
         if self.device and self.device.is_opened():
