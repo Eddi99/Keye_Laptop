@@ -1,13 +1,15 @@
 import cv2  # OpenCV für Bildverarbeitung
+import threading
 from ultralytics import YOLO  # YOLO für Objekterkennung
 
 
 class ObjectDetection:
     def __init__(self, model_path="yolo11s.pt"):
         self.cap = cv2.VideoCapture(1)  # Öffnet die Kamera mit Index 1
+        self.model_path = model_path # speichert den Pfad zum Yolo-Modell, dass an die Klasse übergeben wird
+        self.model = None # PLatzhalter für das Yolo-Modell
         self.cap.set(3, 1280)  # Setzt die Breite des Kamera-Frames auf 1280 Pixel
         self.cap.set(4, 720)  # Setzt die Höhe des Kamera-Frames auf 720 Pixel
-        self.model = YOLO(model_path)  # Lädt das YOLO-Modell für Objekterkennung
         self.target_object = "person"  # Definiert das Zielobjekt als "Person"
         self.running = False  # Kontrollvariable für das Hauptprogramm (Start erst nach GUI-Klick)
 
@@ -23,6 +25,13 @@ class ObjectDetection:
         self.out_zone2_frames = 0  # Anzahl der nicht erkannten Frames in der zweiten ROI
         self.is_active = False  # Gibt an, ob aktuell eine Person erkannt wurde
         self.callback = None  # Speichert die Callback-Funktion
+        threading.Thread(target=self.load_model, daemon=True).start() # Starte das Modell-Laden asynchron
+
+    def load_model(self):
+        """Lädt das YOLO-Modell im Hintergrund, um den Start zu beschleunigen."""
+        #print("Lade YOLO-Modell...")
+        self.model = YOLO(self.model_path)
+        #print("YOLO-Modell geladen!")
 
     def set_callback(self, callback):
         """Setzt eine externe Callback-Funktion für erkannte Objekte."""
@@ -42,24 +51,22 @@ class ObjectDetection:
         if self.roi1 and self.roi2:
             for det in detections:
                 x_min, y_min, x_max, y_max, conf, cls = det[:6]
-                label = self.model.names[int(cls)]  # Klassenname des Objekts
+                if self.model.names[int(cls)] == self.target_object:
+                    #print("Erkanntes Objekt ist Person!")
 
-                if label == self.target_object:  # Prüfe, ob das erkannte Objekt eine Person ist
-                    print("ROI1-X: ",self.roi1[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi1[2])
-                    #print("ROI1-Y: ", self.roi1[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi1[3])
-                    print("ROI2-X: ", self.roi2[0], " <= ", (det[0] + det[2]) / 2 / frame.shape[1], " <= ", self.roi2[2])
-                    #print("ROI2-Y: ", self.roi2[1], " <= ", (det[1] + det[3]) / 2 / frame.shape[0], " <= ", self.roi2[3])
+                    if (self.roi1[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi1[2] and
+                    self.roi1[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi1[3]):
+                        #print("detect_objects: Objekt in Zone1")
+                        self.object_in_zone1 = True
+                    else:
+                        self.object_in_zone1 = False
 
-                    self.object_in_zone1 = any(
-                        self.roi1[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi1[2] and
-                        self.roi1[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi1[3]
-                        for det in detections if label == self.target_object
-                    )
-                    self.object_in_zone2 = any(
-                        self.roi2[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi2[2] and
-                        self.roi2[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi2[3]
-                        for det in detections if label == self.target_object
-                    )
+                    if (self.roi2[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi2[2] and
+                    self.roi2[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi2[3]):
+                        #print("detect_objects: Objekt in Zone2")
+                        self.object_in_zone2 = True
+                    else:
+                        self.object_in_zone2 = False
 
             if self.object_in_zone1 or self.object_in_zone2:
                 if self.object_in_zone1:
@@ -69,9 +76,9 @@ class ObjectDetection:
                     self.in_zone2_frames += 1
                     self.out_zone2_frames = 0
 
-                if (self.in_zone1_frames >= 3 or self.in_zone2_frames >= 3) and not self.is_active:
+                if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active:
                     self.is_active = True
-                    print("Person detected in ROI - Alarm triggered!")
+                    print("detect_objects: Person seit mehr als 4 Frames in ROI")
                     if self.callback:
                         self.callback(True)
             else:
@@ -80,9 +87,9 @@ class ObjectDetection:
                 self.out_zone2_frames += 1
                 self.in_zone2_frames = 0
 
-                if (self.out_zone1_frames >= 3 and self.out_zone2_frames >= 3) and self.is_active:
+                if (self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active:
                     self.is_active = False
-                    print("No person in ROI - Alarm deactivated!")
+                    print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
                     if self.callback:
                         self.callback(False)
 

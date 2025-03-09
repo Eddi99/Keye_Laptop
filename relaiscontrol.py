@@ -19,10 +19,11 @@ class RelaisControl:
         if self.device and not self.device.is_opened():
             self.device.open()
             self.get_report()
-            #self.on_all() # schaltet das Relais zu anfang direkt an, damit der Sicherheitskreis geschlossen ist
+            self.on_all() # schaltet das Relais zu anfang an, damit der Sicherheitskreis geschlossen ist
 
     def close_device(self): #Schließt die Verbindung zum USB-Relais, falls es geöffnet ist.
         if self.device and self.device.is_opened():
+            self.off_all()
             self.device.close()
 
     def get_report(self): #Liest das Report-Objekt des Geräts aus.
@@ -30,12 +31,6 @@ class RelaisControl:
             reports = self.device.find_output_reports() + self.device.find_feature_reports()
             if reports:
                 self.report = reports[0]  # Speichert das erste gefundene Report-Objekt
-
-    def read_status_row(self): #Liest den aktuellen Status des Relais aus.
-        if self.report is None:
-            print("Cannot read report")
-            return [0, 1, 0, 0, 0, 0, 0, 0, 3]
-        return self.report.get()
 
     def write_row_data(self, buffer): #Sendet ein Steuerkommando an das Relais.
         if self.report is not None:
@@ -47,21 +42,16 @@ class RelaisControl:
 
     def on_all(self): #Schaltet alle Relais ein.
         if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):
-            return self.read_relay_status(3)
+            print("on_all: Relaiskreislauf eingeschaltet!")
+            return
         else:
-            print("Cannot turn ON all relays")
+            print("Cannot turn ON relays")
             return False
 
     def off_all(self): #Schaltet alle Relais aus.
         if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):
-            return self.read_relay_status(3)
+            print("off_all: Relaiskreislauf ausgeschaltet!")
+            return
         else:
-            print("Cannot turn OFF all relays")
+            print("Cannot turn OFF relays")
             return False
-
-    def read_relay_status(self, relay_number): #Überprüft, ob ein bestimmtes Relais eingeschaltet ist.
-        buffer = self.read_status_row()
-        return relay_number & buffer[8]
-
-    def is_relay_on(self, relay_number): #Gibt zurück, ob ein bestimmtes Relais aktiv ist.
-        return self.read_relay_status(relay_number) > 0

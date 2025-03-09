@@ -17,7 +17,7 @@ class DecisionLogic:
         self.roi1 = roi1  # Setzt die erste ROI
         self.roi2 = roi2  # Setzt die zweite ROI
         self.detector.set_rois(roi1, roi2)  # Übergibt die ROIs an die Objekterkennung
-        print("ROIs gesetzt:", roi1, roi2)  # Gibt eine Bestätigung aus
+        print("Decision_logic.set_rois:", roi1, roi2)  # Gibt eine Bestätigung aus
 
     def start_detection(self):
         """Startet die Objekterkennung in einem separaten Thread, wenn ROIs gesetzt sind."""
@@ -35,17 +35,18 @@ class DecisionLogic:
             self.detector.stop()  # Setzt die Steuerungsvariable auf False
             if self.detection_thread:
                 self.detection_thread.join()  # Wartet auf das Beenden des Threads
-            print("Erkennung gestoppt.")
 
     def handle_detection(self, detected):
         """Callback-Funktion, die von der Objekterkennung aufgerufen wird."""
         if detected:
+            print("handle_detection: Relais aus")
             self.relais.off_all()  # Schaltet das Relais aus, wenn eine Person erkannt wird
         else:
+            print("handle_detection: Relais ein")
             self.relais.on_all()  # Schaltet das Relais ein, wenn keine Person erkannt wird
 
     def shutdown(self):
         """Beendet das gesamte System sicher."""
         print("System wird heruntergefahren...")
         self.stop_detection()  # Beendet die Erkennung
-        self.relais.off_all()  # Schaltet das Relais aus
+        self.relais.close_device() # Beendet die Verbindung zum Relais

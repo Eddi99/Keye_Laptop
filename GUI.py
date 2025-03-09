@@ -1,6 +1,6 @@
 import cv2  # OpenCV für Bildverarbeitung
 import threading  # Für paralleles Ausführen der Objekterkennung
-from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QAbstractButton  # PyQt6 für GUI-Elemente
+from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget  # PyQt6 für GUI-Elemente
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen  # PyQt6 für Bildverarbeitung und Zeichnen
 from PyQt6.QtCore import Qt  # PyQt6 für Fenstersteuerung und Punktkoordinaten
 
@@ -22,12 +22,12 @@ class GUIApp(QWidget):
         self.initUI()  # Initialisiert die Benutzeroberfläche
 
     def initUI(self):
-        self.setWindowTitle("ROI Auswahl")  # Setzt den Fenstertitel
+        self.setWindowTitle("Keye UI")  # Setzt den Fenstertitel
         self.setGeometry(100, 100, 900, 700)  # Erhöht die Fenstergröße für bessere Anpassung
 
         self.label = QLabel(self)  # Erstellt ein Label für das Bild
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)  # Setzt das Bild an den oberen Rand
-        self.label.setFixedSize(800, 600)  # Setzt eine feste Größe für das Bild
+        self.label.setFixedSize(1280, 720)  # Setzt eine feste Größe für das Bild
 
         self.confirm_button = QPushButton("Bestätigen und Starten", self)  # Erstellt einen Bestätigungsbutton
         self.confirm_button.setEnabled(False)  # Deaktiviert den Button initial
@@ -47,12 +47,14 @@ class GUIApp(QWidget):
 
     def capture_frame(self):
         cap = cv2.VideoCapture(1)  # Öffnet die Kamera mit Index 1
+        cap.set(3, 1280)  # Setzt die Breite des Kamera-Frames auf 1280 Pixel
+        cap.set(4, 720)  # Setzt die Höhe des Kamera-Frames auf 720 Pixel
         ret, frame = cap.read()  # Nimmt ein Einzelbild auf
         cap.release()  # Schließt die Kamera
 
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Konvertiert das Bild in RGB
-            self.image = cv2.resize(frame, (800, 600))  # Skaliert das Bild auf die Fenstergröße
+            self.image = cv2.resize(frame, (1280, 720))  # Skaliert das Bild auf die Fenstergröße
             self.show_frame()  # Zeigt das Bild im GUI-Fenster an
         else:
             print("Kamerabild konnte nicht geladen werden")  # Fehlerausgabe, falls kein Bild aufgenommen werden konnte
@@ -99,7 +101,7 @@ class GUIApp(QWidget):
             y = max(0, min(y, self.label.height() - 1))
             self.roi_points.append((x, y))
             self.temp_roi = (x, y, x, y)  # Setzt das temporäre Rechteck
-            print(f"ROI {self.current_roi}: Punkt {len(self.roi_points) % 2 + 1} gesetzt: {x}, {y}")
+            print(f"mousePressEvent: ROI {self.current_roi}: Punkt {len(self.roi_points) % 2 + 1} gesetzt: {x}, {y}")
             self.show_frame()
 
         else:
@@ -107,12 +109,11 @@ class GUIApp(QWidget):
 
     def confirm_rois(self):
         """Bestätigt die gesetzten ROIs und übergibt sie an die Entscheidungslogik."""
-        width, height, _ = self.image.shape # wird benötigt, um ROI-Koordinaten umzurechnen
-        roi1 = (self.roi_points[0][0] / width, self.roi_points[0][1] / height, # ROI Koordinaten in absolute Werte zwischen 0 und 1 umrechnen und speichern
-                self.roi_points[1][0] / width, self.roi_points[1][1] / height)
-        roi2 = (self.roi_points[2][0] / width, self.roi_points[2][1] / height,
-                self.roi_points[3][0] / width, self.roi_points[3][1] / height)
-        print("ROIs gespeichert:", roi1, roi2)
+        roi1 = (self.roi_points[0][0] / 1280, self.roi_points[0][1] / 720, # ROI Koordinaten in absolute Werte zwischen 0 und 1 umrechnen und speichern
+                self.roi_points[1][0] / 1280, self.roi_points[1][1] / 720)
+        roi2 = (self.roi_points[2][0] / 1280, self.roi_points[2][1] / 720,
+                self.roi_points[3][0] / 1280, self.roi_points[3][1] / 720)
+        print("Confirm_rois:", roi1, roi2)
         self.confirm_button.setEnabled(False)  # deaktiviert den confrim_button
         self.close_button.setEnabled(True)  # aktiviert den close_button
 
@@ -123,7 +124,11 @@ class GUIApp(QWidget):
         detection_thread = threading.Thread(target=self.logic.start_detection)
         detection_thread.start()
 
+    def closeEvent(self, event):
+        """Führt die Funktion zum sicheren Beenden auch beim Schließen des Fensters aus"""
+        self.close_application()
 
     def close_application(self):
+        """Beendet das Programm sicher und schließt alle zugehörigen Prozesse"""
         self.logic.shutdown()
         self.close()
