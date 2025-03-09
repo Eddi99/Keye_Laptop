@@ -10,8 +10,11 @@ class ObjectDetection:
         self.model = None # PLatzhalter für das Yolo-Modell
         self.cap.set(3, 1280)  # Setzt die Breite des Kamera-Frames auf 1280 Pixel
         self.cap.set(4, 720)  # Setzt die Höhe des Kamera-Frames auf 720 Pixel
+        self.frame_callback = None  # Callback-Funktion für die GUI-Einbettung des Personenerkennungsbildes
+        self.detection_callback = None  # Speichert die Callback-Funktion
         self.target_object = "person"  # Definiert das Zielobjekt als "Person"
         self.running = False  # Kontrollvariable für das Hauptprogramm (Start erst nach GUI-Klick)
+        threading.Thread(target=self.load_model, daemon=True).start() # Starte das Modell-Laden asynchron
 
         # ROIs als Platzhalter
         self.roi1 = None
@@ -24,8 +27,6 @@ class ObjectDetection:
         self.in_zone2_frames = 0  # Anzahl erkannter Frames in der zweiten ROI
         self.out_zone2_frames = 0  # Anzahl der nicht erkannten Frames in der zweiten ROI
         self.is_active = False  # Gibt an, ob aktuell eine Person erkannt wurde
-        self.callback = None  # Speichert die Callback-Funktion
-        threading.Thread(target=self.load_model, daemon=True).start() # Starte das Modell-Laden asynchron
 
     def load_model(self):
         """Lädt das YOLO-Modell im Hintergrund, um den Start zu beschleunigen."""
@@ -33,29 +34,19 @@ class ObjectDetection:
         self.model = YOLO(self.model_path)
         #print("YOLO-Modell geladen!")
 
-    def set_callback(self, callback):
+    def set_detection_callback(self, callback):
         """Setzt eine externe Callback-Funktion für erkannte Objekte."""
-        self.callback = callback
+        self.detection_callback = callback
+
+    def set_frame_callback(self, callback):
+        """Setzt eine Callback-Funktion für das aktuelle Erkennungsbild."""
+        self.frame_callback = callback
 
     def set_rois(self, roi1, roi2):
         """Speichert die ROIs für die Erkennung."""
         self.roi1 = roi1
         self.roi2 = roi2
-        print("ROIs für die Erkennung aktualisiert:", roi1, roi2)
-
-    """"@staticmethod
-    def check_overlap(bbox, roi):
-        """"""Überprüft, ob sich die Bounding Box mit der ROI überschneidet.""""""
-        x_min, y_min, x_max, y_max = bbox
-        rx_min, ry_min, rx_max, ry_max = roi
-
-        if x_max < rx_min or x_min > rx_max or y_max < ry_min or y_min > ry_max:
-            print("bbox außerhalb der ROI")
-            print("xmax: ", x_max, " < rxmin: ", rx_min, "oder xmin: ", x_min, " > rxmax: ", rx_max, " oder ymax: ", y_max, " < rymin: ", ry_min, " oder ymin: ", y_min, " >rymax: ", ry_max)
-            return False
-        else:
-            print("bbox innerhalb der ROI")
-            return True"""
+        print("keye_detection: ROIs für die Erkennung aktualisiert:", roi1, roi2)
 
     def detect_objects(self, frame):
         """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""
@@ -65,7 +56,6 @@ class ObjectDetection:
         if self.roi1 and self.roi2:
             for det in detections:
                 x_min, y_min, x_max, y_max, conf, cls = det[:6]
-
                 r1xmin, r1ymin, r1xmax, r1ymax = self.roi1
                 r2xmin, r2ymin, r2xmax, r2ymax = self.roi2
 
@@ -75,13 +65,13 @@ class ObjectDetection:
                     if x_max/1280 < r1xmin or x_min/1280 > r1xmax or y_max/720 < r1ymin or y_min/720 > r1ymax:
                         self.object_in_zone1 = False
                     else:
-                        print("detect_objects: Objekt in Zone1")
+                        #print("detect_objects: Objekt in Zone1")
                         self.object_in_zone1 = True
 
                     if x_max/1280 < r2xmin or x_min/1280 > r2xmax or y_max/720 < r2ymin or y_min/720 > r2ymax:
                         self.object_in_zone2 = False
                     else:
-                        print("detect_objects: Objekt in Zone2")
+                        #print("detect_objects: Objekt in Zone2")
                         self.object_in_zone2 = True
 
             if self.object_in_zone1 or self.object_in_zone2:
@@ -94,9 +84,9 @@ class ObjectDetection:
 
                 if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active:
                     self.is_active = True
-                    print("detect_objects: Person seit mehr als 4 Frames in ROI")
-                    if self.callback:
-                        self.callback(True)
+                    #print("detect_objects: Person seit mehr als 4 Frames in ROI")
+                    if self.detection_callback:
+                        self.detection_callback(True)
             else:
                 self.out_zone1_frames += 1
                 self.in_zone1_frames = 0
@@ -105,9 +95,9 @@ class ObjectDetection:
 
                 if (self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active:
                     self.is_active = False
-                    print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
-                    if self.callback:
-                        self.callback(False)
+                    #print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
+                    if self.detection_callback:
+                        self.detection_callback(False)
 
         # Zeichne Bounding Boxes auf dem Kamerabild
         for det in detections:
@@ -141,12 +131,13 @@ class ObjectDetection:
             ret, frame = self.cap.read()
             if not ret:
                 break
-            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
-            frame_annotated = self.detect_objects(frame_rgb)
 
-            cv2.imshow("Erkennung", cv2.cvtColor(frame_annotated, cv2.COLOR_RGB2BGR))
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+            frame_annotated = self.detect_objects(frame_rgb)  # Zeichnet Bounding Boxes
+
+            # Übergibt das verarbeitete Bild an die GUI
+            if self.frame_callback:
+                self.frame_callback(frame_annotated)
 
         self.cap.release()
         cv2.destroyAllWindows()

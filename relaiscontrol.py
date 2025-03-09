@@ -42,7 +42,7 @@ class RelaisControl:
 
     def on_all(self): #Schaltet alle Relais ein.
         if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):
-            print("on_all: Relaiskreislauf eingeschaltet!")
+            #print("on_all: Relaiskreislauf eingeschaltet!")
             return
         else:
             print("Cannot turn ON relays")
@@ -50,7 +50,7 @@ class RelaisControl:
 
     def off_all(self): #Schaltet alle Relais aus.
         if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):
-            print("off_all: Relaiskreislauf ausgeschaltet!")
+            #print("off_all: Relaiskreislauf ausgeschaltet!")
             return
         else:
             print("Cannot turn OFF relays")
