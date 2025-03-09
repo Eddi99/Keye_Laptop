@@ -17,11 +17,11 @@ class ObjectDetection:
         threading.Thread(target=self.load_model, daemon=True).start() # Starte das Modell-Laden asynchron
 
         # ROIs als Platzhalter
-        self.roi1 = None
-        self.roi2 = None
+        self.roi1 = None # hier werden die Grenzen der ersten ROI gespeichert
+        self.roi2 = None # hier werden die Grenzen der zweiten ROI gespeichert
 
-        self.object_in_zone1 = False
-        self.object_in_zone2 = False
+        self.object_in_zone1 = False # bool, die anzeigt, ob sich in der ersten ROI eine Person befindet
+        self.object_in_zone2 = False # bool, die anzeigt, ob sich in der zweiten ROI eine Person befindet
         self.in_zone1_frames = 0  # Anzahl erkannter Frames in der ersten ROI
         self.out_zone1_frames = 0  # Anzahl der nicht erkannten Frames in der ersten ROI
         self.in_zone2_frames = 0  # Anzahl erkannter Frames in der zweiten ROI
@@ -46,58 +46,58 @@ class ObjectDetection:
         """Speichert die ROIs für die Erkennung."""
         self.roi1 = roi1
         self.roi2 = roi2
-        print("keye_detection: ROIs für die Erkennung aktualisiert:", roi1, roi2)
+        #print("keye_detection: ROIs für die Erkennung aktualisiert: ", roi1, roi2)
 
     def detect_objects(self, frame):
         """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""
-        results = self.model(frame, imgsz=320, verbose=False)
+        results = self.model(frame, imgsz=320, verbose=False) # führt die Objekterkennung durch und speichert die Ergebnisse
         detections = results[0].boxes.data.cpu().numpy()  # Extrahiert erkannte Objekte
 
-        if self.roi1 and self.roi2:
-            for det in detections:
-                x_min, y_min, x_max, y_max, conf, cls = det[:6]
-                r1xmin, r1ymin, r1xmax, r1ymax = self.roi1
+        if self.roi1 and self.roi2: # stellt sicher, dass die ROIs vorhanden sind
+            for det in detections: # für jedes erkannte Objekt wird die schleife einmal durchlaufen
+                x_min, y_min, x_max, y_max, conf, cls = det[:6] # speichert die Bounding Box des Objektes, die Sicherheit der Erkennung und das Label
+                r1xmin, r1ymin, r1xmax, r1ymax = self.roi1 # speichert die Grenzen der ROI in einzelne Werte ab (nur zur Übersichtlichkeit)
                 r2xmin, r2ymin, r2xmax, r2ymax = self.roi2
 
-                if self.model.names[int(cls)] == self.target_object:
+                if self.model.names[int(cls)] == self.target_object: # nur wenn eine Person erkannt wird, geht es weiter
                     #print("Erkanntes Objekt ist Person!")
 
-                    if x_max/1280 < r1xmin or x_min/1280 > r1xmax or y_max/720 < r1ymin or y_min/720 > r1ymax:
-                        self.object_in_zone1 = False
+                    if x_max/1280 < r1xmin or x_min/1280 > r1xmax or y_max/720 < r1ymin or y_min/720 > r1ymax: # überprüft, ob sich die Person außerhalb der ersten ROI befindet
+                        self.object_in_zone1 = False # wenn sich die Person außerhalb der ROI befindet, wird die variable auf falsch gesetzt
                     else:
                         #print("detect_objects: Objekt in Zone1")
-                        self.object_in_zone1 = True
+                        self.object_in_zone1 = True # wenn sich die Person innerhalb der ROI befindet, wird die variable auf true gesetzt
 
-                    if x_max/1280 < r2xmin or x_min/1280 > r2xmax or y_max/720 < r2ymin or y_min/720 > r2ymax:
-                        self.object_in_zone2 = False
+                    if x_max/1280 < r2xmin or x_min/1280 > r2xmax or y_max/720 < r2ymin or y_min/720 > r2ymax: # überprüft, ob sich die Person außerhalb der zweiten ROI befindet
+                        self.object_in_zone2 = False # wenn sich die Person außerhalb der ROI befindet, wird die variable auf falsch gesetzt
                     else:
                         #print("detect_objects: Objekt in Zone2")
-                        self.object_in_zone2 = True
+                        self.object_in_zone2 = True # wenn sich die Person innerhalb der ROI befindet, wird die variable auf true gesetzt
 
-            if self.object_in_zone1 or self.object_in_zone2:
+            if self.object_in_zone1 or self.object_in_zone2: # wenn sich eine Person in einer der ROIs befindet, wird eine Variable hochgezählt die sicherstellt, dass bei einer kurzen Falscherkennung nicht das Relais direkt schaltet
                 if self.object_in_zone1:
-                    self.in_zone1_frames += 1
-                    self.out_zone1_frames = 0
+                    self.in_zone1_frames += 1 # zählt bei Person in der Zone hoch
+                    self.out_zone1_frames = 0 # wird bei Person in der Zone auf null gesetzt
                 if self.object_in_zone2:
                     self.in_zone2_frames += 1
                     self.out_zone2_frames = 0
 
-                if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active:
-                    self.is_active = True
+                if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active: # überprüft, ob die erkannte Person während den letzten vier Frames in der ROI erkannt wurde
+                    self.is_active = True # zeigt an, ob bereits eine Person erkannt wurde
                     #print("detect_objects: Person seit mehr als 4 Frames in ROI")
                     if self.detection_callback:
-                        self.detection_callback(True)
-            else:
-                self.out_zone1_frames += 1
-                self.in_zone1_frames = 0
+                        self.detection_callback(True) # gibt an die decision per Callback True aus, damit das Relais ausgeschaltet wird
+            else: # wenn sich die Person wieder außerhalb der ROI befindet, wird ebenfalls nicht direkt geschaltet, um bei fehlerhafter erkennung außerhalb der ROI nicht direkt wieder einzuschalten
+                self.out_zone1_frames += 1 # zählt hoch, wenn sich die Person, die zuvor in der ROI war aus der ROI rausbewegt
+                self.in_zone1_frames = 0 # wird bei Person außerhalb der Zone wieder auf null gesetzt
                 self.out_zone2_frames += 1
                 self.in_zone2_frames = 0
 
-                if (self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active:
+                if (self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active: # überprüft, ob die erkannte Person während den letzten vier Frames außerhalb der ROI erkannt wurde
                     self.is_active = False
                     #print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
                     if self.detection_callback:
-                        self.detection_callback(False)
+                        self.detection_callback(False) # gibt an die decision per Callback False aus, damit das Relais eingeschaltet wird
 
         # Zeichne Bounding Boxes auf dem Kamerabild
         for det in detections:
@@ -132,7 +132,7 @@ class ObjectDetection:
             if not ret:
                 break
 
-            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB) # speichert ein Bild von der Webcam
             frame_annotated = self.detect_objects(frame_rgb)  # Zeichnet Bounding Boxes
 
             # Übergibt das verarbeitete Bild an die GUI
