@@ -17,7 +17,7 @@ class GUIApp(QWidget):
         self.current_roi = 1  # Speichert, welche ROI aktuell gesetzt wird
         self.label = None  # GUI-Element zur Anzeige des Kamerabilds
         self.confirm_button = None  # Button zum Bestätigen der ROIs
-        self.close_button = None  # Button zum Bestätigen der ROIs
+        self.roi_reset_button = None  # Button zum Zurücksetzen der ROIs
         self.confirm_button_bool = True  # Überprüfungsvariable zum nur einmaligen Abschicken der ROI
 
         self.initUI()  # Initialisiert die Benutzeroberfläche
@@ -35,15 +35,14 @@ class GUIApp(QWidget):
         self.confirm_button.setEnabled(False)  # Deaktiviert den Button initial
         self.confirm_button.clicked.connect(self.confirm_rois)  # Verbindet den Button mit der Bestätigungsfunktion
 
-        self.close_button = QPushButton("Programm beenden", self)  # Erstellt einen Button, der das Programm beendet
-        self.close_button.setEnabled(True)  # aktiviert den Button initial
-        self.close_button.clicked.connect(
-            self.close_application)  # Verbindet den Button mit der Programm-beenden-Funktion
+        self.roi_reset_button = QPushButton("ROI Reset", self)  # Erstellt einen Button, der die ROIs zurücksetzt
+        self.roi_reset_button.setEnabled(True)  # aktiviert den Button initial
+        self.roi_reset_button.clicked.connect(self.roi_reset)  # Verbindet den Button mit der roi_reset-Funktion
 
         layout = QVBoxLayout()  # Erstellt ein vertikales Layout
         layout.addWidget(self.label)  # Fügt das Bildlabel zum Layout hinzu
         layout.addWidget(self.confirm_button)  # Fügt den Bestätigungsbutton zum Layout hinzu
-        layout.addWidget(self.close_button)  # Fügt den Programm-beenden-Button zum Layout hinzu
+        layout.addWidget(self.roi_reset_button)  # Fügt den ROI-reset-Button zum Layout hinzu
         self.setLayout(layout)  # Setzt das Layout für das Fenster
 
         self.capture_frame()  # Nimmt ein Standbild von der Kamera auf
@@ -70,8 +69,7 @@ class GUIApp(QWidget):
         if self.image is not None:
             height, width, channel = self.image.shape  # Bestimmt Bildhöhe, -breite und Kanäle
             bytes_per_line = 3 * width  # Berechnet die Byte-Anzahl pro Zeile
-            q_img = QImage(self.image.data, width, height, bytes_per_line,
-                           QImage.Format.Format_RGB888)  # Erstellt ein QImage aus dem Kamerabild
+            q_img = QImage(self.image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)  # Erstellt ein QImage aus dem Kamerabild
             pixmap = QPixmap.fromImage(q_img)  # Wandelt das QImage in ein QPixmap um
 
             if len(self.roi_points) >= 2 or self.temp_roi:
@@ -108,10 +106,12 @@ class GUIApp(QWidget):
             y = max(0, min(y, self.label.height() - 1))
             self.roi_points.append((x, y))
             self.temp_roi = (x, y, x, y)  # Setzt das temporäre Rechteck
-            #print(f"mousePressEvent: ROI {self.current_roi}: Punkt {len(self.roi_points) % 2 + 1} gesetzt: {x}, {y}")
-            self.show_frame()
+            # print(f"mousePressEvent: ROI {self.current_roi}: Punkt {len(self.roi_points) % 2 + 1} gesetzt: {x}, {y}")
+            self.show_frame()  # zeigt das Bild aktualisiert mit den aktuellen ROIs an, falls es welche gibt
             if len(self.roi_points) == 4 and self.confirm_button_bool:
-                self.confirm_button.setEnabled(True)  # aktiviert den confrim_button, falls die ROI gesetzt wurden
+                self.confirm_button.setEnabled(True)  # aktiviert den confirm_button, falls die ROI gesetzt wurden
+            else:
+                self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button, falls die ROI resettet wurden
 
     def confirm_rois(self):
         """Bestätigt die gesetzten ROIs und übergibt sie an die Entscheidungslogik."""
@@ -120,34 +120,34 @@ class GUIApp(QWidget):
                 self.roi_points[1][0] / 1280, self.roi_points[1][1] / 720)
         roi2 = (self.roi_points[2][0] / 1280, self.roi_points[2][1] / 720,
                 self.roi_points[3][0] / 1280, self.roi_points[3][1] / 720)
-        #print("Confirm_rois:", roi1, roi2)
-        self.confirm_button.setEnabled(False)  # deaktiviert den confrim_button
+        # print("Confirm_rois:", roi1, roi2)
+        self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button
         self.confirm_button_bool = False  # deaktiviert den confirm_button dauerhaft
+        self.roi_reset_button.setEnabled(False)  # verhindert den ROI-reset, wenn die Objekterkennung gestartet wurde
         self.logic.set_rois(roi1, roi2)  # ROI werte an die decision_logic übergeben
 
         # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
         self.logic.detector.set_frame_callback(self.update_frame)
 
-        # Startet die Personenerkennung als separaten Thread, damit andere Teile des Programms weiterlaufen können
         # print("Detection-Thread startet...")
-        detection_thread = threading.Thread(target=self.logic.start_detection)
+        detection_thread = threading.Thread(target=self.logic.start_detection)  # Startet die Personenerkennung als separaten Thread, damit andere Teile des Programms weiterlaufen können
         detection_thread.start()
+
+    def roi_reset(self):
+        self.roi_points.clear()  # leert die Liste der gesetzten ROI-punkte
+        self.show_frame()  # zeigt das Bild aktualisiert ohne ROIs
+        self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button
 
     def update_frame(self, frame):
         """Aktualisiert das Bild in der GUI mit einem neuen Frame."""
         height, width, channel = frame.shape  # Bestimmt die Höhe, Breite und Anzahl der Farbkanäle des Bildes
         bytes_per_line = 3 * width  # Berechnet die Anzahl der Bytes pro Zeile (3 Bytes pro Pixel für RGB)
-        q_img = QImage(frame.data, width, height, bytes_per_line,
-                       QImage.Format.Format_RGB888)  # Erstellt ein QImage-Objekt aus den Bilddaten für die Anzeige in der GUI
+        q_img = QImage(frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)  # Erstellt ein QImage-Objekt aus den Bilddaten für die Anzeige in der GUI
         pixmap = QPixmap.fromImage(q_img)  # Wandelt das QImage in ein QPixmap um, das in PyQt-Anwendungen genutzt wird
 
         self.label.setPixmap(pixmap)  # Setzt das aktualisierte Bild im GUI-Label
 
     def closeEvent(self, event):
         """Führt die Funktion zum sicheren Beenden auch beim Schließen des Fensters aus"""
-        self.close_application()
-
-    def close_application(self):
-        """Beendet das Programm sicher und schließt alle zugehörigen Prozesse"""
         self.logic.shutdown()  # beendet die decision_logic Instanz
         self.close()  # schließt das Fenster
