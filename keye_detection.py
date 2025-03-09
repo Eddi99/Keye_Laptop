@@ -43,6 +43,20 @@ class ObjectDetection:
         self.roi2 = roi2
         print("ROIs für die Erkennung aktualisiert:", roi1, roi2)
 
+    """"@staticmethod
+    def check_overlap(bbox, roi):
+        """"""Überprüft, ob sich die Bounding Box mit der ROI überschneidet.""""""
+        x_min, y_min, x_max, y_max = bbox
+        rx_min, ry_min, rx_max, ry_max = roi
+
+        if x_max < rx_min or x_min > rx_max or y_max < ry_min or y_min > ry_max:
+            print("bbox außerhalb der ROI")
+            print("xmax: ", x_max, " < rxmin: ", rx_min, "oder xmin: ", x_min, " > rxmax: ", rx_max, " oder ymax: ", y_max, " < rymin: ", ry_min, " oder ymin: ", y_min, " >rymax: ", ry_max)
+            return False
+        else:
+            print("bbox innerhalb der ROI")
+            return True"""
+
     def detect_objects(self, frame):
         """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""
         results = self.model(frame, imgsz=320, verbose=False)
@@ -51,22 +65,24 @@ class ObjectDetection:
         if self.roi1 and self.roi2:
             for det in detections:
                 x_min, y_min, x_max, y_max, conf, cls = det[:6]
+
+                r1xmin, r1ymin, r1xmax, r1ymax = self.roi1
+                r2xmin, r2ymin, r2xmax, r2ymax = self.roi2
+
                 if self.model.names[int(cls)] == self.target_object:
                     #print("Erkanntes Objekt ist Person!")
 
-                    if (self.roi1[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi1[2] and
-                    self.roi1[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi1[3]):
-                        #print("detect_objects: Objekt in Zone1")
-                        self.object_in_zone1 = True
-                    else:
+                    if x_max/1280 < r1xmin or x_min/1280 > r1xmax or y_max/720 < r1ymin or y_min/720 > r1ymax:
                         self.object_in_zone1 = False
-
-                    if (self.roi2[0] <= (det[0] + det[2]) / 2 / frame.shape[1] <= self.roi2[2] and
-                    self.roi2[1] <= (det[1] + det[3]) / 2 / frame.shape[0] <= self.roi2[3]):
-                        #print("detect_objects: Objekt in Zone2")
-                        self.object_in_zone2 = True
                     else:
+                        print("detect_objects: Objekt in Zone1")
+                        self.object_in_zone1 = True
+
+                    if x_max/1280 < r2xmin or x_min/1280 > r2xmax or y_max/720 < r2ymin or y_min/720 > r2ymax:
                         self.object_in_zone2 = False
+                    else:
+                        print("detect_objects: Objekt in Zone2")
+                        self.object_in_zone2 = True
 
             if self.object_in_zone1 or self.object_in_zone2:
                 if self.object_in_zone1:

@@ -56,6 +56,7 @@ class GUIApp(QWidget):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Konvertiert das Bild in RGB
             self.image = cv2.resize(frame, (1280, 720))  # Skaliert das Bild auf die Fenstergröße
             self.show_frame()  # Zeigt das Bild im GUI-Fenster an
+
         else:
             print("Kamerabild konnte nicht geladen werden")  # Fehlerausgabe, falls kein Bild aufgenommen werden konnte
 
