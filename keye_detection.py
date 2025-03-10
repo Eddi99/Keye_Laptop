@@ -100,50 +100,50 @@ class ObjectDetection:
                         self.detection_callback(False) # gibt an die decision per Callback False aus, damit das Relais eingeschaltet wird
 
         # Zeichne Bounding Boxes auf dem Kamerabild
-        for det in detections:
-            x_min, y_min, x_max, y_max, conf, cls = det[:6]
-            label = f"{self.model.names[int(cls)]}: {conf:.2f}"
-            cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
-            cv2.putText(frame, label, (int(x_min), int(y_min) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        for det in detections:  # Durchläuft alle erkannten Objekte in den Detektionen
+            x_min, y_min, x_max, y_max, conf, cls = det[:6]  # Extrahiert die Bounding-Box-Koordinaten, die Konfidenz und die Klasse
+            label = f"{self.model.names[int(cls)]}: {conf:.2f}"  # Erstellt eine Label-Beschriftung mit Klassenname und Konfidenzwert
+            cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)  # Zeichnet ein grünes Rechteck um das erkannte Objekt
+            cv2.putText(frame, label, (int(x_min), int(y_min) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),2)  # Fügt die Label-Beschriftung über der Bounding Box hinzu
 
         # Zeichne die ROIs als Rechtecke
-        height, width, _ = frame.shape
+        height, width, _ = frame.shape  # Bestimmt die Höhe und Breite des aktuellen Frames
         roi1_px = (int(self.roi1[0] * width), int(self.roi1[1] * height), int(self.roi1[2] * width),
-                   int(self.roi1[3] * height))
+                   int(self.roi1[3] * height))  # Berechnet die ROI 1-Koordinaten in Pixeln
         roi2_px = (int(self.roi2[0] * width), int(self.roi2[1] * height), int(self.roi2[2] * width),
-                  int(self.roi2[3] * height))
+                   int(self.roi2[3] * height))  # Berechnet die ROI 2-Koordinaten in Pixeln
 
-        cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Blau für ROI 1
-        cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Rot für ROI 2
+        cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Zeichnet ein blaues Rechteck für ROI 1
+        cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Zeichnet ein rotes Rechteck für ROI 2
 
-        return frame
+        return frame  # Gibt das annotierte Frame zurück
 
     def run(self):
         """Startet die Objekterkennung in einer Schleife."""
-        if not self.roi1 or not self.roi2:
-            print("ROIs nicht gesetzt! Starte nicht.")
-            return
+        if not self.roi1 or not self.roi2:  # Prüft, ob die ROIs gesetzt sind
+            print("ROIs nicht gesetzt! Starte nicht.")  # Gibt eine Fehlermeldung aus, wenn keine ROIs definiert sind
+            return  # Beendet die Funktion, falls keine ROIs vorhanden sind
 
-        self.running = True
-        print("Erkennung läuft...")
+        self.running = True  # Setzt den Status auf "laufend"
+        print("Erkennung läuft...")  # Gibt eine Statusmeldung aus
 
-        while self.cap.isOpened() and self.running:
-            ret, frame = self.cap.read()
-            if not ret:
+        while self.cap.isOpened() and self.running:  # Schleife läuft, solange die Kamera geöffnet ist und das Programm aktiv bleibt
+            ret, frame = self.cap.read()  # Liest ein Bild von der Kamera
+            if not ret:  # Falls kein Bild gelesen werden kann, wird die Schleife beendet
                 break
 
-            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB) # speichert ein Bild von der Webcam
-            frame_annotated = self.detect_objects(frame_rgb)  # Zeichnet Bounding Boxes
+            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)  # Spiegelt das Bild horizontal und konvertiert es von BGR nach RGB
+            frame_annotated = self.detect_objects(frame_rgb)  # Ruft die Objekterkennung auf und annotiert das Bild
 
             # Übergibt das verarbeitete Bild an die GUI
             if self.frame_callback:
-                self.frame_callback(frame_annotated)
+                self.frame_callback(frame_annotated)  # Führt die Callback-Funktion aus, falls vorhanden
 
-        self.cap.release()
-        cv2.destroyAllWindows()
-        print("Erkennung gestoppt.")
+        self.cap.release()  # Gibt die Kameraressourcen frei
+        cv2.destroyAllWindows()  # Schließt alle OpenCV-Fenster
+        print("Erkennung gestoppt.")  # Gibt eine Statusmeldung aus
 
     def stop(self):
         """Stoppt die Objekterkennung sicher."""
-        self.running = False
-        print("Erkennung wird gestoppt...")
+        self.running = False  # Setzt den Status auf "nicht laufend"
+        print("Erkennung wird gestoppt...")  # Gibt eine Statusmeldung aus
