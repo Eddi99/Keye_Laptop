@@ -1,6 +1,6 @@
 import cv2  # OpenCV für Bildverarbeitung
 import threading  # Für paralleles Ausführen der Objekterkennung
-from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget  # PyQt6 für GUI-Elemente
+from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QHBoxLayout  # PyQt6 für GUI-Elemente
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen  # PyQt6 für Bildverarbeitung und Zeichnen
 from PyQt6.QtCore import Qt  # PyQt6 für Fenstersteuerung und Punktkoordinaten
 
@@ -28,7 +28,7 @@ class GUIApp(QWidget):
         self.setGeometry(100, 100, 900, 700)  # Erhöht die Fenstergröße für bessere Anpassung
 
         self.label = QLabel(self)  # Erstellt ein Label für das Bild
-        self.label.setAlignment(Qt.AlignmentFlag.AlignTop)  # Setzt das Bild an den oberen Rand
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Zentriert das Bild im Label
         self.label.setFixedSize(1280, 720)  # Setzt eine feste Größe für das Bild
 
         self.confirm_button = QPushButton("Bestätigen und Starten", self)  # Erstellt einen Bestätigungsbutton
@@ -40,7 +40,13 @@ class GUIApp(QWidget):
         self.roi_reset_button.clicked.connect(self.roi_reset)  # Verbindet den Button mit der roi_reset-Funktion
 
         layout = QVBoxLayout()  # Erstellt ein vertikales Layout
-        layout.addWidget(self.label)  # Fügt das Bildlabel zum Layout hinzu
+
+        image_layout = QHBoxLayout() # Neues zentriertes Layout für das Bild
+        image_layout.addStretch()  # Platz vor dem Bild hinzufügen
+        image_layout.addWidget(self.label)  # Bild einfügen
+        image_layout.addStretch()  # Platz nach dem Bild hinzufügen
+
+        layout.addLayout(image_layout)  # Füge das horizontale Layout in das Hauptlayout ein
         layout.addWidget(self.confirm_button)  # Fügt den Bestätigungsbutton zum Layout hinzu
         layout.addWidget(self.roi_reset_button)  # Fügt den ROI-reset-Button zum Layout hinzu
         self.setLayout(layout)  # Setzt das Layout für das Fenster
@@ -148,6 +154,6 @@ class GUIApp(QWidget):
         self.label.setPixmap(pixmap)  # Setzt das aktualisierte Bild im GUI-Label
 
     def closeEvent(self, event):
-        """Führt die Funktion zum sicheren Beenden auch beim Schließen des Fensters aus"""
+        """Führt die Funktion zum sicheren Beenden beim Schließen des Fensters aus"""
         self.logic.shutdown()  # beendet die decision_logic Instanz
         self.close()  # schließt das Fenster
