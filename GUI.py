@@ -1,8 +1,9 @@
 import cv2  # OpenCV für Bildverarbeitung
 import threading  # Für paralleles Ausführen der Objekterkennung
-from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QHBoxLayout  # PyQt6 für GUI-Elemente
+from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QHBoxLayout,QTextEdit  # PyQt6 für GUI-Elemente
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPen  # PyQt6 für Bildverarbeitung und Zeichnen
-from PyQt6.QtCore import Qt  # PyQt6 für Fenstersteuerung und Punktkoordinaten
+from PyQt6.QtCore import Qt  # PyQt6 für Fenstersteuerung und Punktkoordinatenfrom
+import sys
 
 
 class GUIApp(QWidget):
@@ -19,6 +20,7 @@ class GUIApp(QWidget):
         self.confirm_button = None  # Button zum Bestätigen der ROIs
         self.roi_reset_button = None  # Button zum Zurücksetzen der ROIs
         self.confirm_button_bool = True  # Überprüfungsvariable zum nur einmaligen Abschicken der ROI
+        self.console_output = QTextEdit(self) # Log-Fenster für Konsolenausgabe
 
         self.initUI()  # Initialisiert die Benutzeroberfläche
 
@@ -39,6 +41,15 @@ class GUIApp(QWidget):
         self.roi_reset_button.setEnabled(True)  # aktiviert den Button initial
         self.roi_reset_button.clicked.connect(self.roi_reset)  # Verbindet den Button mit der roi_reset-Funktion
 
+        self.console_output.setReadOnly(True)  # Keine manuelle Eingabe erlauben
+        self.console_output.setFixedHeight(50)  # Höhe des Log-Fensters begrenzen
+        self.console_output.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)  # Scrollbar immer anzeigen
+        self.console_output.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Keine horizontale Scrollbar
+        self.console_output.hide()  # Erst verstecken, bis die Buttons deaktiviert wurden
+
+        sys.stdout = self # Umleitung von stdout & stderr zur GUI
+        sys.stderr = self
+
         layout = QVBoxLayout()  # Erstellt ein vertikales Layout
 
         image_layout = QHBoxLayout() # Neues zentriertes Layout für das Bild
@@ -49,6 +60,7 @@ class GUIApp(QWidget):
         layout.addLayout(image_layout)  # Füge das horizontale Layout in das Hauptlayout ein
         layout.addWidget(self.confirm_button)  # Fügt den Bestätigungsbutton zum Layout hinzu
         layout.addWidget(self.roi_reset_button)  # Fügt den ROI-reset-Button zum Layout hinzu
+        layout.addWidget(self.console_output)  # Log-Fenster zur GUI hinzufügen
         self.setLayout(layout)  # Setzt das Layout für das Fenster
 
         self.capture_frame()  # Nimmt ein Standbild von der Kamera auf
@@ -126,16 +138,20 @@ class GUIApp(QWidget):
                 self.roi_points[1][0] / 1280, self.roi_points[1][1] / 720)
         roi2 = (self.roi_points[2][0] / 1280, self.roi_points[2][1] / 720,
                 self.roi_points[3][0] / 1280, self.roi_points[3][1] / 720)
-        # print("Confirm_rois:", roi1, roi2)
+
         self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button
         self.confirm_button_bool = False  # deaktiviert den confirm_button dauerhaft
+        self.confirm_button.hide()  # Button wird nicht mehr im Layout gezeigt
         self.roi_reset_button.setEnabled(False)  # verhindert den ROI-reset, wenn die Objekterkennung gestartet wurde
-        self.logic.set_rois(roi1, roi2)  # ROI werte an die decision_logic übergeben
+        self.roi_reset_button.hide() # Button wird nicht mehr im Layout gezeigt
+        self.layout().removeWidget(self.confirm_button) # Entferne die Buttons aus dem Layout
+        self.layout().removeWidget(self.roi_reset_button)
 
-        # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
-        self.logic.detector.set_frame_callback(self.update_frame)
+        self.console_output.show() # Zeige das Konsolen-Log-Fenster an
+        self.layout().update() # Stelle sicher, dass das Layout aktualisiert wird
 
-        # print("Detection-Thread startet...")
+        self.logic.set_rois(roi1, roi2) # ROI werte an die decision_logic übergeben
+        self.logic.detector.set_frame_callback(self.update_frame) # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
         detection_thread = threading.Thread(target=self.logic.start_detection)  # Startet die Personenerkennung als separaten Thread, damit andere Teile des Programms weiterlaufen können
         detection_thread.start()
 
@@ -153,7 +169,22 @@ class GUIApp(QWidget):
 
         self.label.setPixmap(pixmap)  # Setzt das aktualisierte Bild im GUI-Label
 
+    def write(self, text):
+        """Fängt Konsolenausgaben ab und zeigt sie in der GUI an"""
+        text = text.strip()  # Entfernt überflüssige Leerzeilen
+        if text:  # Nur hinzufügen, wenn Text nicht leer ist
+            self.console_output.insertPlainText(text + "\n")
+            self.console_output.verticalScrollBar().setValue(
+                self.console_output.verticalScrollBar().maximum())  # Automatisches Scrollen
+
+    def flush(self):
+        """Erforderlich für Kompatibilität mit sys.stdout, bleibt aber leer"""
+        pass
+
     def closeEvent(self, event):
         """Führt die Funktion zum sicheren Beenden beim Schließen des Fensters aus"""
+        sys.stdout = sys.__stdout__ # stoppt die Konsolenanzeige
+        sys.stderr = sys.__stderr__
+        event.accept()
         self.logic.shutdown()  # beendet die decision_logic Instanz
         self.close()  # schließt das Fenster
