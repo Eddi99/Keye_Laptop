@@ -176,6 +176,3 @@ calibration_*.npy
 
 # directories
 ultralytics/
-
-# executables
-*.exe
