@@ -25,6 +25,7 @@ class DecisionLogic:
             if not self.detection_thread or not self.detection_thread.is_alive():  # Verhindert mehrfaches Starten
                 self.detection_thread = threading.Thread(target=self.detector.run, daemon=True)  # Erstellt neuen Thread
                 self.detection_thread.start()  # Startet die Erkennung
+                self.relais.on_all() # startet bei Start der Detection initial das Relais ein
                 #print("start_detection: Erkennung gestartet...")
         else:
             print("ROIs müssen zuerst gesetzt werden!")  # Falls keine ROIs gesetzt wurden

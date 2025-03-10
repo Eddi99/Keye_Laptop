@@ -18,6 +18,8 @@ class GUIApp(QWidget):
         self.label = None  # GUI-Element zur Anzeige des Kamerabilds
         self.confirm_button = None  # Button zum Bestätigen der ROIs
         self.roi_reset_button = None  # Button zum Zurücksetzen der ROIs
+        self.relais_on_button = None  # Button zum Einschalten des Relais
+        self.relais_off_button = None  # Button zum Ausschalten des Relais
         self.confirm_button_bool = True  # Überprüfungsvariable zum nur einmaligen Abschicken der ROI
 
         self.initUI()  # Initialisiert die Benutzeroberfläche
@@ -31,6 +33,7 @@ class GUIApp(QWidget):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Zentriert das Bild im Label
         self.label.setFixedSize(1280, 720)  # Setzt eine feste Größe für das Bild
 
+        # Initial sichtbare Buttons zur ROI Festlegung und zum Starten des Programms
         self.confirm_button = QPushButton("Bestätigen und Starten", self)  # Erstellt einen Bestätigungsbutton
         self.confirm_button.setEnabled(False)  # Deaktiviert den Button initial
         self.confirm_button.clicked.connect(self.confirm_rois)  # Verbindet den Button mit der Bestätigungsfunktion
@@ -38,6 +41,17 @@ class GUIApp(QWidget):
         self.roi_reset_button = QPushButton("ROI Reset", self)  # Erstellt einen Button, der die ROIs zurücksetzt
         self.roi_reset_button.setEnabled(True)  # aktiviert den Button initial
         self.roi_reset_button.clicked.connect(self.roi_reset)  # Verbindet den Button mit der roi_reset-Funktion
+
+        # Neue Buttons zur Relais-Steuerung (anfangs ausgeblendet)
+        self.relais_on_button = QPushButton("Relais EIN", self)
+        self.relais_on_button.setStyleSheet("background-color: green; color: white;")  # Grüne Farbe für EIN
+        self.relais_on_button.clicked.connect(self.logic.relais.on_all)  # Schaltet Relais ein
+        self.relais_on_button.setVisible(False)  # Anfangs nicht sichtbar
+
+        self.relais_off_button = QPushButton("Relais AUS", self)
+        self.relais_off_button.setStyleSheet("background-color: red; color: white;")  # Rote Farbe für AUS
+        self.relais_off_button.clicked.connect(self.logic.relais.off_all)  # Schaltet Relais aus
+        self.relais_off_button.setVisible(False)  # Anfangs nicht sichtbar
 
         layout = QVBoxLayout()  # Erstellt ein vertikales Layout
 
@@ -49,6 +63,8 @@ class GUIApp(QWidget):
         layout.addLayout(image_layout)  # Füge das horizontale Layout in das Hauptlayout ein
         layout.addWidget(self.confirm_button)  # Fügt den Bestätigungsbutton zum Layout hinzu
         layout.addWidget(self.roi_reset_button)  # Fügt den ROI-reset-Button zum Layout hinzu
+        layout.addWidget(self.relais_on_button)  # Fügt den Relais-EIN-Button hinzu
+        layout.addWidget(self.relais_off_button)  # Fügt den Relais-AUS-Button hinzu
         self.setLayout(layout)  # Setzt das Layout für das Fenster
 
         self.capture_frame()  # Nimmt ein Standbild von der Kamera auf
@@ -126,16 +142,19 @@ class GUIApp(QWidget):
                 self.roi_points[1][0] / 1280, self.roi_points[1][1] / 720)
         roi2 = (self.roi_points[2][0] / 1280, self.roi_points[2][1] / 720,
                 self.roi_points[3][0] / 1280, self.roi_points[3][1] / 720)
-        # print("Confirm_rois:", roi1, roi2)
+
+        # Ändert die Buttons von den ROI reset und Start zu Relais ein und aus
         self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button
         self.confirm_button_bool = False  # deaktiviert den confirm_button dauerhaft
         self.roi_reset_button.setEnabled(False)  # verhindert den ROI-reset, wenn die Objekterkennung gestartet wurde
+        self.confirm_button.setVisible(False)  # Blendet den Start-Button aus
+        self.roi_reset_button.setVisible(False)  # Blendet den ROI-Reset-Button aus
+        self.relais_on_button.setVisible(True)  # Zeigt den Relais-EIN-Button an
+        self.relais_off_button.setVisible(True)  # Zeigt den Relais-AUS-Button an
+
         self.logic.set_rois(roi1, roi2)  # ROI werte an die decision_logic übergeben
 
-        # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
-        self.logic.detector.set_frame_callback(self.update_frame)
-
-        # print("Detection-Thread startet...")
+        self.logic.detector.set_frame_callback(self.update_frame) # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
         detection_thread = threading.Thread(target=self.logic.start_detection)  # Startet die Personenerkennung als separaten Thread, damit andere Teile des Programms weiterlaufen können
         detection_thread.start()
 
