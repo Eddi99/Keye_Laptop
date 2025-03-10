@@ -1,0 +1,4 @@
+Versuche, Relais EINzuschalten...
+Sende Daten an Relais: [0, 254, 0, 0, 0, 0, 0, 0, 1]
+Relais erfolgreich geschaltet!
+Relaiskreislauf eingeschaltet!

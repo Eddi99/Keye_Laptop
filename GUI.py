@@ -156,6 +156,7 @@ class GUIApp(QWidget):
         detection_thread.start()
 
     def roi_reset(self):
+        """setzt die ROIs zurück, damit sie erneut gesetzt werden können"""
         self.roi_points.clear()  # leert die Liste der gesetzten ROI-punkte
         self.show_frame()  # zeigt das Bild aktualisiert ohne ROIs
         self.confirm_button.setEnabled(False)  # deaktiviert den confirm_button
@@ -174,8 +175,7 @@ class GUIApp(QWidget):
         text = text.strip()  # Entfernt überflüssige Leerzeilen
         if text:  # Nur hinzufügen, wenn Text nicht leer ist
             self.console_output.insertPlainText(text + "\n")
-            self.console_output.verticalScrollBar().setValue(
-                self.console_output.verticalScrollBar().maximum())  # Automatisches Scrollen
+            self.console_output.verticalScrollBar().setValue(self.console_output.verticalScrollBar().maximum())  # Automatisches Scrollen
 
     def flush(self):
         """Erforderlich für Kompatibilität mit sys.stdout, bleibt aber leer"""
