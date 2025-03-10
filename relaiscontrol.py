@@ -15,21 +15,11 @@ class RelaisControl:
         if devices:  # Falls mindestens ein Gerät gefunden wurde
             self.device = devices[0]  # Speichert das erste gefundene Gerät in der Instanzvariable
 
-    def open_device(self):
-        """Öffnet die Verbindung zum USB-Relais, falls es verfügbar ist."""
-        if self.device is None:
-            print("Kein USB-Relais gefunden! Stelle sicher, dass es angeschlossen ist.")
-            return
-
-        if not self.device.is_opened():
-            try:
-                self.device.open()
-                self.get_report()
-                self.on_all()
-            except Exception as e:
-                print(f"Fehler beim Öffnen des Geräts: {e}")
-                import traceback
-                traceback.print_exc()
+    def open_device(self):  # Öffnet die Verbindung zum USB-Relais, falls es verfügbar ist.
+        if self.device and not self.device.is_opened():  # Prüft, ob ein Gerät existiert und ob es noch nicht geöffnet ist
+            self.device.open()  # Öffnet die Verbindung zum Gerät
+            self.get_report()  # Liest das Report-Objekt des Geräts aus
+            self.on_all()  # Schaltet das Relais zu Beginn ein, damit der Sicherheitskreis geschlossen ist
 
     def close_device(self):  # Schließt die Verbindung zum USB-Relais, falls es geöffnet ist.
         if self.device and self.device.is_opened():  # Prüft, ob das Gerät existiert und aktuell geöffnet ist
@@ -42,51 +32,26 @@ class RelaisControl:
             if reports:  # Falls mindestens ein Report gefunden wurde
                 self.report = reports[0]  # Speichert das erste gefundene Report-Objekt
 
-    def write_row_data(self, buffer):
-        """Sendet ein Steuerkommando an das Relais."""
-        if self.report is not None:
-            print(f"Sende Daten an Relais: {buffer}")
-            try:
-                self.report.send(raw_data=buffer)
-                print("Relais erfolgreich geschaltet!")
-                return True
-            except Exception as e:
-                print(f"Fehler beim Senden an das Relais: {e}")
-                import traceback
-                traceback.print_exc()
-                return False
+    def write_row_data(self, buffer):  # Sendet ein Steuerkommando an das Relais.
+        if self.report is not None:  # Prüft, ob ein gültiges Report-Objekt vorhanden ist
+            self.report.send(raw_data=buffer)  # Sendet den Datenpuffer an das Report-Objekt
+            return True  # Gibt True zurück, wenn der Befehl erfolgreich gesendet wurde
         else:
-            print("Kein gültiges Report-Objekt. Ist das Relais noch verbunden?")
-            return False
+            print("Cannot write to the report. Check if your device is still plugged in.")  # Fehlerausgabe, falls kein gültiges Report-Objekt existiert
+            return False  # Gibt False zurück, wenn das Senden fehlschlägt
 
-    def on_all(self):
-        """Schaltet alle Relais ein."""
-        try:
-            print("Versuche, Relais EINzuschalten...")
-            if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):
-                print("Relaiskreislauf eingeschaltet!")
-                return True
-            else:
-                print("Fehler: Relais konnten nicht eingeschaltet werden!")
-                return False
-        except Exception as e:
-            print(f"Fehler in on_all: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+    def on_all(self):  # Schaltet alle Relais ein.
+        if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):  # Sendet einen Befehl zum Einschalten aller Relais
+            print("Relaiskreislauf eingeschaltet!")  # Erfolgsnachricht
+            return
+        else:
+            print("Cannot turn ON relays")  # Fehlerausgabe, falls das Einschalten fehlschlägt
+            return False  # Gibt False zurück, wenn der Befehl nicht erfolgreich war
 
-    def off_all(self):
-        """Schaltet alle Relais aus."""
-        try:
-            print("Versuche, Relais AUSzuschalten...")
-            if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):
-                print("Relaiskreislauf ausgeschaltet!")
-                return True
-            else:
-                print("Fehler: Relais konnten nicht ausgeschaltet werden!")
-                return False
-        except Exception as e:
-            print(f"Fehler in off_all: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+    def off_all(self):  # Schaltet alle Relais aus.
+        if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):  # Sendet einen Befehl zum Ausschalten aller Relais
+            print("Relaiskreislauf ausgeschaltet!")  # Erfolgsnachricht
+            return
+        else:
+            print("Cannot turn OFF relays")  # Fehlerausgabe, falls das Ausschalten fehlschlägt
+            return False  # Gibt False zurück, wenn der Befehl nicht erfolgreich war

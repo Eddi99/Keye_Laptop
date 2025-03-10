@@ -88,7 +88,7 @@ class ObjectDetection:
                     if self.detection_callback:
                         self.detection_callback(True) # gibt an die decision per Callback True aus, damit das Relais ausgeschaltet wird
             else: # wenn sich die Person wieder außerhalb der ROI befindet, wird ebenfalls nicht direkt geschaltet, um bei fehlerhafter erkennung außerhalb der ROI nicht direkt wieder einzuschalten
-                self.out_zone1_frames += 1 # zählt hoch, wenn sich die Person, die zuvor in der ROI war aus der ROI herausbewegt
+                self.out_zone1_frames += 1 # zählt hoch, wenn sich die Person, die zuvor in der ROI war aus der ROI rausbewegt
                 self.in_zone1_frames = 0 # wird bei Person außerhalb der Zone wieder auf null gesetzt
                 self.out_zone2_frames += 1
                 self.in_zone2_frames = 0
@@ -96,7 +96,8 @@ class ObjectDetection:
                 if (
                         self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active:  # Überprüft, ob die erkannte Person während der letzten vier Frames außerhalb der ROIs erkannt wurde
                     self.is_active = False  # Setzt den Status auf inaktiv, da keine Gefahr mehr besteht
-                    print("Person außer Gefahr, Sicherheitskreis wird freigeschaltet...")  # Gibt eine Meldung aus, dass die Sicherheitsabschaltung deaktiviert wird
+                    print(
+                        "Person außer Gefahr, Sicherheitskreis wird freigeschaltet...")  # Gibt eine Meldung aus, dass die Sicherheitsabschaltung deaktiviert wird
                     if self.detection_callback:  # Überprüft, ob eine Callback-Funktion definiert ist
                         self.detection_callback(
                             False)  # Ruft die Callback-Funktion auf und übergibt "False", damit das Relais eingeschaltet wird
