@@ -4,7 +4,7 @@ from ultralytics import YOLO  # YOLO für Objekterkennung
 
 
 class ObjectDetection:
-    def __init__(self, model_path="yolo11s.pt"):
+    def __init__(self, model_path="yolo11n.pt"):
         self.cap = cv2.VideoCapture(1)  # Öffnet die Kamera mit Index 1
         self.model_path = model_path # speichert den Pfad zum Yolo-Modell, dass an die Klasse übergeben wird
         self.model = None # PLatzhalter für das Yolo-Modell
@@ -82,7 +82,7 @@ class ObjectDetection:
                     self.in_zone2_frames += 1
                     self.out_zone2_frames = 0
 
-                if (self.in_zone1_frames >= 4 or self.in_zone2_frames >= 4) and not self.is_active: # überprüft, ob die erkannte Person während den letzten vier Frames in der ROI erkannt wurde
+                if (self.in_zone1_frames >= 3 or self.in_zone2_frames >= 3) and not self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames in der ROI erkannt wurde
                     self.is_active = True # zeigt an, ob bereits eine Person erkannt wurde
                     #print("detect_objects: Person seit mehr als 4 Frames in ROI")
                     if self.detection_callback:
@@ -93,7 +93,7 @@ class ObjectDetection:
                 self.out_zone2_frames += 1
                 self.in_zone2_frames = 0
 
-                if (self.out_zone1_frames >= 4 and self.out_zone2_frames >= 4) and self.is_active: # überprüft, ob die erkannte Person während den letzten vier Frames außerhalb der ROI erkannt wurde
+                if (self.out_zone1_frames >= 3 and self.out_zone2_frames >= 3) and self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames außerhalb der ROI erkannt wurde
                     self.is_active = False
                     #print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
                     if self.detection_callback:
