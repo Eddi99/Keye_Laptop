@@ -14,6 +14,7 @@ Fehlerbehebung:
 - Wenn die anwendung nicht startet, ggf. über Konsole zunächst mit Keye_venv\Scripts\activate die virtuelle Umgebung
   starten und dann main.py ausführen.
 - Bei schwarzem Bild ggf. Webcam Treiber deinstallieren und standard USB Treiber verwenden
+- Wenn sich die Webcamtreiber automatisch reinstallieren mit dem bash-Befehl "pnputil /delete-driver oemXX.inf /uninstall" dauerhaft abschalten
 - Bei Kamerafehler, wenn keine interne Webcam vorhanden ist ggf. im Skript keye_detection.py in der init bei self.cap = cv2.VideoCapture(0) 1 einsetzen.
 
 Autor
