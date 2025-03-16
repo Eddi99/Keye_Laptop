@@ -32,9 +32,9 @@ class ObjectDetection:
 
     def load_model(self):
         """Lädt das YOLO-Modell im Hintergrund, um den Start zu beschleunigen."""
-        #print("Lade YOLO-Modell...")
+        print("Lade YOLO-Modell...")
         self.model = YOLO(self.model_path, task='detect')
-        #print("YOLO-Modell geladen!")
+        print("YOLO-Modell geladen!")
 
     def set_detection_callback(self, callback):
         """Setzt eine externe Callback-Funktion für erkannte Objekte."""
@@ -48,7 +48,7 @@ class ObjectDetection:
         """Speichert die ROIs für die Erkennung."""
         self.roi1 = roi1
         self.roi2 = roi2
-        #print("keye_detection: ROIs für die Erkennung aktualisiert: ", roi1, roi2)
+        print("keye_detection: ROIs für die Erkennung aktualisiert: ", roi1, roi2)
 
     def detect_objects(self, frame):
         """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""

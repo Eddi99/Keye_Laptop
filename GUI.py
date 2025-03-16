@@ -17,7 +17,8 @@ class GUIApp(QWidget):
 		self.image = None  # Variable zum Speichern des aktuellen Kamerabilds
 		self.current_roi = 1  # Speichert, welche ROI aktuell gesetzt wird
 		self.label = None  # GUI-Element zur Anzeige des Kamerabilds
-		self.retake_picture_button = None  # Button zumwiederholen des Fotos
+		self.banner_label = None # Banner, zur Anzeige von Nutzer-Infos
+		self.retake_picture_button = None  # Button zum Wiederholen des Fotos
 		self.confirm_button = None  # Button zum Bestätigen der ROIs
 		self.roi_reset_button = None  # Button zum Zurücksetzen der ROIs
 		self.relais_on_button = None  # Button zum Einschalten des Relais
@@ -36,8 +37,12 @@ class GUIApp(QWidget):
 		screen_height = screen_size.height()# Bildschirmhöhe speichern
 
 		self.setGeometry(0, 0, int(screen_width * 0.9), int(screen_height * 0.9))  # Fenstergröße anpassen
-		self.image_width = int(screen_width * 0.78)
-		self.image_height = int(screen_height * 0.78)
+		self.image_width = int(screen_width * 0.75)
+		self.image_height = int(screen_height * 0.75)
+
+		self.banner_label = QLabel("Willkommen! Bitte spannen Sie zwei Sicherheitszonen auf, indem Sie jeweils zwei Eckpunkte anklicken oder nehmen Sie das Bild erneut auf.",self)  # Info-Banner initialisieren
+		self.banner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.banner_label.setStyleSheet("font-size: 16px; font-weight: bold; color: black;")
 
 		self.label = QLabel(self)  # Bildanzeige-Fenster (Label) im Layout
 		self.label.setAlignment(Qt.AlignmentFlag.AlignCenter) # Fenster mittig im Layout platzieren
@@ -89,6 +94,7 @@ class GUIApp(QWidget):
 
 		layout = QVBoxLayout()  # Hauptlayout vertikal angeordent
 		layout.addStretch()  # Platz vor dem Bild für Zentrierung
+		layout.addWidget(self.banner_label)
 		layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)  # Bild ins Layout einfügen
 		layout.addStretch()  # Platz nach dem Bild
 		layout.addLayout(button_layout)  # Button-Anordnung zur Hauptanordnung hinzufügen
@@ -158,9 +164,11 @@ class GUIApp(QWidget):
 			print(f"mousePressEvent: ROI {self.current_roi}: Punkt {len(self.roi_points) % 2 + 1} gesetzt: {x}, {y}")
 			self.show_frame()  # zeigt das Bild aktualisiert mit den aktuellen ROIs an, falls es welche gibt
 			if len(self.roi_points) >= 4 and self.confirm_button_bool:
+				self.banner_label.setText("Sicherheitszonen gesetzt! Sie können das Programm starten oder die Zonen zurücksetzen.") # Nutzerinfo aktualisieren
 				self.confirm_button.setVisible(True)  # aktiviert den confirm_button, falls die ROI gesetzt wurden
 				self.retake_picture_button.setVisible(False)  # Blendet den Bild-wiederholen-Button aus
 			else:
+				self.banner_label.setText("Spannen Sie zwei Sicherheitszonen durch jeweils zwei Punkte auf oder nehmen Sie das Bild erneut auf.") # Nutzerinfo aktualisieren
 				self.retake_picture_button.setVisible(True)  # Blendet den Bild-wiederholen-Button ein
 				self.confirm_button.setVisible(False)  # deaktiviert den confirm_button, falls die ROI resettet wurden
 
@@ -179,6 +187,8 @@ class GUIApp(QWidget):
 		self.relais_on_button.setVisible(True)  # Zeigt den Relais-EIN-Button an
 		self.relais_off_button.setVisible(True)  # Zeigt den Relais-AUS-Button an
 
+		self.banner_label.setText("Durch Relais EIN und Relais AUS können Sie das Relais manuell steuern, zum Beenden Fenster schließen oder Beenden Klicken.")  # Nutzerinfo aktualisieren
+
 		self.logic.set_rois(roi1, roi2)  # ROI werte an die decision_logic übergeben
 
 		self.logic.detector.set_frame_callback(self.update_frame)  # Setzt das Frame-Update-Callback für das Live-Bild der Erkennung
@@ -186,6 +196,8 @@ class GUIApp(QWidget):
 		detection_thread.start()
 
 	def roi_reset(self):
+		self.banner_label.setText(
+			"Spannen Sie zwei Sicherheitszonen durch jeweils zwei Punkte auf oder nehmen Sie das Bild erneut auf.")  # Nutzerinfo aktualisieren
 		self.roi_points.clear()  # leert die Liste der gesetzten ROI-punkte
 		self.show_frame()  # zeigt das Bild aktualisiert ohne ROIs
 		self.retake_picture_button.setVisible(True)  # aktiviert den Bild noch einmal aufnehmen Button
