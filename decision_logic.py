@@ -17,7 +17,7 @@ class DecisionLogic:
         self.roi1 = roi1  # Setzt die erste ROI
         self.roi2 = roi2  # Setzt die zweite ROI
         self.detector.set_rois(roi1, roi2)  # Übergibt die ROIs an die Objekterkennung
-        #print("Decision_logic.set_rois:", roi1, roi2)  # Gibt eine Bestätigung aus
+        print("Decision_logic.set_rois:", roi1, roi2)  # Gibt eine Bestätigung aus
 
     def start_detection(self):
         """Startet die Objekterkennung in einem separaten Thread, wenn ROIs gesetzt sind."""
@@ -26,9 +26,9 @@ class DecisionLogic:
                 self.detection_thread = threading.Thread(target=self.detector.run, daemon=True)  # Erstellt neuen Thread
                 self.detection_thread.start()  # Startet die Erkennung
                 self.relais.on_all() # startet bei Start der Detection initial das Relais ein
-                #print("start_detection: Erkennung gestartet...")
+                print("start_detection: Erkennung gestartet...")
         else:
-            print("ROIs müssen zuerst gesetzt werden!")  # Falls keine ROIs gesetzt wurden
+            print("start_detection: ROIs müssen zuerst gesetzt werden!")  # Falls keine ROIs gesetzt wurden
 
     def stop_detection(self):
         """Beendet die laufende Objekterkennung sicher."""
@@ -40,14 +40,14 @@ class DecisionLogic:
     def handle_detection(self, detected):
         """Callback-Funktion, die von der Objekterkennung aufgerufen wird."""
         if detected:
-            #print("handle_detection: Relais aus")
+            print("handle_detection: Relais ausschalten")
             self.relais.off_all()  # Schaltet das Relais aus, wenn eine Person erkannt wird
         else:
-            #print("handle_detection: Relais ein")
+            print("handle_detection: Relais einschalten")
             self.relais.on_all()  # Schaltet das Relais ein, wenn keine Person erkannt wird
 
     def shutdown(self):
         """Beendet das gesamte System sicher."""
-        print("System wird heruntergefahren...")
+        print("shutdown: System wird heruntergefahren...")
         self.stop_detection()  # Beendet die Erkennung
         self.relais.close_device() # Beendet die Verbindung zum Relais

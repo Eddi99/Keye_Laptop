@@ -5,11 +5,13 @@ from ultralytics import YOLO  # YOLO für Objekterkennung
 
 class ObjectDetection:
     def __init__(self, model_path="yolo11s_ncnn_model"):
-        self.cap = cv2.VideoCapture(1)  # Öffnet die Kamera mit Index 1
+        self.cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # DirectShow verwenden
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # MJPEG-Format erzwingen
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)  # Versucht, die FPS auf 30 zu setzen
         self.model_path = model_path # speichert den Pfad zum Yolo-Modell, dass an die Klasse übergeben wird
         self.model = None # PLatzhalter für das Yolo-Modell
-        self.cap.set(3, 1280)  # Setzt die Breite des Kamera-Frames auf 1280 Pixel
-        self.cap.set(4, 720)  # Setzt die Höhe des Kamera-Frames auf 720 Pixel
         self.frame_callback = None  # Callback-Funktion für die GUI-Einbettung des Personenerkennungsbildes
         self.detection_callback = None  # Speichert die Callback-Funktion
         self.target_object = "person"  # Definiert das Zielobjekt als "Person"
@@ -113,8 +115,8 @@ class ObjectDetection:
         roi2_px = (int(self.roi2[0] * width), int(self.roi2[1] * height), int(self.roi2[2] * width),
                    int(self.roi2[3] * height))  # Berechnet die ROI 2-Koordinaten in Pixeln
 
-        cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Zeichnet ein blaues Rechteck für ROI 1
-        cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (0, 0, 255), 2)  # Zeichnet ein rotes Rechteck für ROI 2
+        cv2.rectangle(frame, (roi1_px[0], roi1_px[1]), (roi1_px[2], roi1_px[3]), (255, 0, 0), 2)  # Zeichnet ein rotes Rechteck für ROI 1
+        cv2.rectangle(frame, (roi2_px[0], roi2_px[1]), (roi2_px[2], roi2_px[3]), (255, 0, 0), 2)  # Zeichnet ein rotes Rechteck für ROI 2
 
         return frame  # Gibt das annotierte Frame zurück
 
@@ -127,21 +129,23 @@ class ObjectDetection:
         self.running = True  # Setzt den Status auf "laufend"
         print("Erkennung läuft...")  # Gibt eine Statusmeldung aus
 
-        while self.cap.isOpened() and self.running:  # Schleife läuft, solange die Kamera geöffnet ist und das Programm aktiv bleibt
-            ret, frame = self.cap.read()  # Liest ein Bild von der Kamera
-            if not ret:  # Falls kein Bild gelesen werden kann, wird die Schleife beendet
-                break
+        try:
+            while self.cap.isOpened() and self.running:  # Schleife läuft, solange die Kamera geöffnet ist und das Programm aktiv bleibt
+                ret, frame = self.cap.read()  # Liest ein Bild von der Kamera
+                if not ret:  # Falls kein Bild gelesen werden kann, wird die Schleife beendet
+                    break
 
-            frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)  # Spiegelt das Bild horizontal und konvertiert es von BGR nach RGB
-            frame_annotated = self.detect_objects(frame_rgb)  # Ruft die Objekterkennung auf und annotiert das Bild
+                frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)  # Spiegelt das Bild horizontal und konvertiert es von BGR nach RGB
+                frame_annotated = self.detect_objects(frame_rgb)  # Ruft die Objekterkennung auf und annotiert das Bild
 
-            # Übergibt das verarbeitete Bild an die GUI
-            if self.frame_callback:
-                self.frame_callback(frame_annotated)  # Führt die Callback-Funktion aus, falls vorhanden
+                # Übergibt das verarbeitete Bild an die GUI
+                if self.frame_callback:
+                    self.frame_callback(frame_annotated)  # Führt die Callback-Funktion aus, falls vorhanden
 
-        self.cap.release()  # Gibt die Kameraressourcen frei
-        cv2.destroyAllWindows()  # Schließt alle OpenCV-Fenster
-        print("Erkennung gestoppt.")  # Gibt eine Statusmeldung aus
+        finally:
+            self.cap.release()  # Gibt die Kameraressourcen frei
+            cv2.destroyAllWindows()  # Schließt alle OpenCV-Fenster
+            print("Erkennung gestoppt.")  # Gibt eine Statusmeldung aus
 
     def stop(self):
         """Stoppt die Objekterkennung sicher."""
