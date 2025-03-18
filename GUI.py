@@ -183,7 +183,7 @@ class GUIApp(QWidget):
 				self.confirm_button.setVisible(True)  # aktiviert den confirm_button, falls die ROI gesetzt wurden
 				self.retake_picture_button.setVisible(False)  # Blendet den Bild-wiederholen-Button aus
 			else:
-				self.banner_label.setText("Spannen Sie zwei Sicherheitszonen durch jeweils zwei Punkte auf oder nehmen Sie das Bild erneut auf.") # Nutzerinfo aktualisieren
+				self.banner_label.setText("Bitte spannen Sie zwei Sicherheitszonen auf, indem Sie jeweils zwei Eckpunkte anklicken oder nehmen Sie das Bild erneut auf.") # Nutzerinfo aktualisieren
 				self.retake_picture_button.setVisible(True)  # Blendet den Bild-wiederholen-Button ein
 				self.confirm_button.setVisible(False)  # deaktiviert den confirm_button, falls die ROI resettet wurden
 
@@ -202,7 +202,7 @@ class GUIApp(QWidget):
 		self.relais_on_button.setVisible(True)  # Zeigt den Relais-EIN-Button an
 		self.relais_off_button.setVisible(True)  # Zeigt den Relais-AUS-Button an
 
-		self.banner_label.setText("Durch Relais EIN und Relais AUS können Sie das Relais manuell steuern, zum Beenden Fenster schließen oder Beenden Klicken.")  # Nutzerinfo aktualisieren
+		self.banner_label.setText("Bitte spannen Sie zwei Sicherheitszonen auf, indem Sie jeweils zwei Eckpunkte anklicken oder nehmen Sie das Bild erneut auf.")  # Nutzerinfo aktualisieren
 
 		self.logic.set_rois(roi1, roi2)  # ROI werte an die decision_logic übergeben
 
@@ -211,8 +211,7 @@ class GUIApp(QWidget):
 		detection_thread.start()
 
 	def roi_reset(self):
-		self.banner_label.setText(
-			"Spannen Sie zwei Sicherheitszonen durch jeweils zwei Punkte auf oder nehmen Sie das Bild erneut auf.")  # Nutzerinfo aktualisieren
+		self.banner_label.setText("Spannen Sie zwei Sicherheitszonen durch jeweils zwei Punkte auf oder nehmen Sie das Bild erneut auf.")  # Nutzerinfo aktualisieren
 		self.roi_points.clear()  # leert die Liste der gesetzten ROI-punkte
 		self.show_frame()  # zeigt das Bild aktualisiert ohne ROIs
 		self.retake_picture_button.setVisible(True)  # aktiviert den Bild noch einmal aufnehmen Button
@@ -221,18 +220,12 @@ class GUIApp(QWidget):
 	def update_frame(self, frame):
 		"""Aktualisiert das Bild in der GUI mit einem neuen Frame."""
 		if frame is not None:
-			# Bild auf die Größe des QLabel-Widgets skalieren (keine Farbänderung!)
-			frame_resized = cv2.resize(frame, (self.label.width(), self.label.height()), interpolation=cv2.INTER_AREA)
-
+			frame_resized = cv2.resize(frame, (self.label.width(), self.label.height()), interpolation=cv2.INTER_AREA) # Bild auf die Größe des QLabel-Widgets skalieren
 			height, width, channel = frame_resized.shape  # Bilddimensionen bestimmen
 			bytes_per_line = 3 * width  # Byte-Anzahl pro Zeile berechnen (RGB = 3 Kanäle)
-
-			q_img = QImage(frame_resized.data, width, height, bytes_per_line,
-						   QImage.Format.Format_RGB888)  # QImage aus den Bilddaten erstellen
+			q_img = QImage(frame_resized.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)  # QImage aus den Bilddaten erstellen
 			pixmap = QPixmap.fromImage(q_img)  # QPixmap für PyQt erzeugen
-
 			self.label.setPixmap(pixmap)  # Das Bild im GUI-Label aktualisieren
-
 
 	def closeEvent(self, event):
 			"""Führt die Funktion zum sicheren Beenden beim Schließen des Fensters aus"""
