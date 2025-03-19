@@ -27,7 +27,7 @@ class ObjectDetection:
         self.roi1 = None # hier werden die Grenzen der ersten ROI gespeichert
         self.roi2 = None # hier werden die Grenzen der zweiten ROI gespeichert
 
-        self.last_frame_time = 0
+        self.last_frame_time = 0 # für die berechnugn der Inferenzzeit
         self.object_in_zone1 = False # bool, die anzeigt, ob sich in der ersten ROI eine Person befindet
         self.object_in_zone2 = False # bool, die anzeigt, ob sich in der zweiten ROI eine Person befindet
         self.in_zone1_frames = 0  # Anzahl erkannter Frames in der ersten ROI
@@ -61,8 +61,8 @@ class ObjectDetection:
         results = self.model(frame, imgsz=320, verbose=False) # führt die Objekterkennung durch und speichert die Ergebnisse
         detections = results[0].boxes.data.cpu().numpy()  # Extrahiert erkannte Objekte
 
-        inferenz_time = self.last_frame_time - time.time()
-        self.last_frame_time = time.time()
+        inferenz_time = self.last_frame_time - time.time() # speichert Inferenzzeit als Differenz des Zeitstempels des letzten Frames und der aktuellen Zeit
+        self.last_frame_time = time.time() # speichert Zeitstempel des aktuellen Frames
 
         if self.roi1 and self.roi2: # stellt sicher, dass die ROIs vorhanden sind
             for det in detections: # für jedes erkannte Objekt wird die schleife einmal durchlaufen
@@ -95,7 +95,7 @@ class ObjectDetection:
 
                 if (self.in_zone1_frames >= 2 or self.in_zone2_frames >= 2) and not self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames in der ROI erkannt wurde
                     self.is_active = True # zeigt an, ob bereits eine Person erkannt wurde
-                    print("detect_objects: Person seit mehr als 2 Frames in ROI, Inferenzzeit = ", (inferenz_time*(-2)))
+                    print("detect_objects: Person seit mehr als 2 Frames in ROI, Inferenzzeit = ", (inferenz_time*(-2))) # gibt die Inferenzzeit von zwei Frames als positiven Wert aus
                     if self.detection_callback:
                         self.detection_callback(True) # gibt an die decision per Callback True aus, damit das Relais ausgeschaltet wird
             else: # wenn sich die Person wieder außerhalb der ROI befindet, wird ebenfalls nicht direkt geschaltet, um bei fehlerhafter erkennung außerhalb der ROI nicht direkt wieder einzuschalten
