@@ -1,6 +1,11 @@
+"""Für diesen TEil des Projektes wurde als Grundlage ein Programm von Core-electronics verwendet, dass unter folgendem Link zu finden ist:
+https://core-electronics.com.au/guides/raspberry-pi/yolo-object-detection-on-the-raspberry-pi-ai-haat-writing-custom-python/
+Das Programm wurde stark verändert, verbessert und auf die Situation angepasst, dennoch bildete es eine ausgezeichnete Grundlage für die Objekterkennung mit YOLO"""
+
 import cv2  # OpenCV für Bildverarbeitung
 import threading
 from ultralytics import YOLO  # YOLO für Objekterkennung
+import time
 
 
 class ObjectDetection:
@@ -22,6 +27,7 @@ class ObjectDetection:
         self.roi1 = None # hier werden die Grenzen der ersten ROI gespeichert
         self.roi2 = None # hier werden die Grenzen der zweiten ROI gespeichert
 
+        self.last_frame_time = 0
         self.object_in_zone1 = False # bool, die anzeigt, ob sich in der ersten ROI eine Person befindet
         self.object_in_zone2 = False # bool, die anzeigt, ob sich in der zweiten ROI eine Person befindet
         self.in_zone1_frames = 0  # Anzahl erkannter Frames in der ersten ROI
@@ -48,12 +54,15 @@ class ObjectDetection:
         """Speichert die ROIs für die Erkennung."""
         self.roi1 = roi1
         self.roi2 = roi2
-        print("keye_detection: ROIs für die Erkennung aktualisiert: ", roi1, roi2)
+        print("keye_detection.set_rois: ROIs für die Erkennung gesetzt: ", roi1, roi2)
 
     def detect_objects(self, frame):
         """Führt die Objekterkennung mit YOLO durch, zeichnet Bounding Boxes und prüft, ob eine Person in den ROIs ist."""
         results = self.model(frame, imgsz=320, verbose=False) # führt die Objekterkennung durch und speichert die Ergebnisse
         detections = results[0].boxes.data.cpu().numpy()  # Extrahiert erkannte Objekte
+
+        inferenz_time = self.last_frame_time - time.time()
+        self.last_frame_time = time.time()
 
         if self.roi1 and self.roi2: # stellt sicher, dass die ROIs vorhanden sind
             for det in detections: # für jedes erkannte Objekt wird die schleife einmal durchlaufen
@@ -84,9 +93,9 @@ class ObjectDetection:
                     self.in_zone2_frames += 1
                     self.out_zone2_frames = 0
 
-                if (self.in_zone1_frames >= 3 or self.in_zone2_frames >= 3) and not self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames in der ROI erkannt wurde
+                if (self.in_zone1_frames >= 2 or self.in_zone2_frames >= 2) and not self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames in der ROI erkannt wurde
                     self.is_active = True # zeigt an, ob bereits eine Person erkannt wurde
-                    #print("detect_objects: Person seit mehr als 4 Frames in ROI")
+                    print("detect_objects: Person seit mehr als 2 Frames in ROI, Inferenzzeit = ", (inferenz_time*(-2)))
                     if self.detection_callback:
                         self.detection_callback(True) # gibt an die decision per Callback True aus, damit das Relais ausgeschaltet wird
             else: # wenn sich die Person wieder außerhalb der ROI befindet, wird ebenfalls nicht direkt geschaltet, um bei fehlerhafter erkennung außerhalb der ROI nicht direkt wieder einzuschalten
@@ -95,9 +104,9 @@ class ObjectDetection:
                 self.out_zone2_frames += 1
                 self.in_zone2_frames = 0
 
-                if (self.out_zone1_frames >= 3 and self.out_zone2_frames >= 3) and self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames außerhalb der ROI erkannt wurde
+                if (self.out_zone1_frames >= 2 and self.out_zone2_frames >= 2) and self.is_active: # überprüft, ob die erkannte Person während den letzten drei Frames außerhalb der ROI erkannt wurde
                     self.is_active = False
-                    #print("detect_objects: Person seit min. 4 Frames nicht mehr in ROI")
+                    print("detect_objects: Person seit min. 2 Frames nicht mehr in ROI")
                     if self.detection_callback:
                         self.detection_callback(False) # gibt an die decision per Callback False aus, damit das Relais eingeschaltet wird
 

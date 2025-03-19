@@ -24,7 +24,6 @@ class RelaisControl:
             devices = filter.get_devices()  # Sucht nach verfügbaren Geräten
             if devices:
                 self.device = devices[0]  # Speichert das erste gefundene Gerät in der Variablen
-                print("get_hid_usb_relay: Relais erfolgreich verbunden!")
             else:
                 raise RuntimeError("get_hid_usb_relay: Kein passendes USB-Relaisgerät gefunden.")  # Falls kein Gerät gefunden wird, wird ein Fehler ausgegeben
         except Exception as e:
@@ -35,6 +34,7 @@ class RelaisControl:
         try:
             if self.device and not self.device.is_opened():  # Prüft, ob das Gerät existiert und noch nicht geöffnet ist
                 self.device.open()  # Öffnet die Verbindung zum HID-Gerät
+                print("open_device: Relais erfolgreich verbunden!")
                 self.get_report()  # Lädt das Report-Objekt des Geräts
             else:
                 raise RuntimeError("open_device: Relais nicht verfügbar oder bereits geöffnet.")  # Fehler, falls das Gerät nicht vorhanden oder bereits offen ist
@@ -85,6 +85,7 @@ class RelaisControl:
         try:
             if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):  # Sendet den Steuerbefehl zum Einschalten
                 print("on_all: Relais wurde eingeschaltet.")  # Gibt eine Bestätigung aus
+                return True
             else:
                 raise RuntimeError(
                     "on_all: Fehler beim Einschalten der Relais.")  # Fehler, falls das Einschalten nicht funktioniert
@@ -97,6 +98,7 @@ class RelaisControl:
         try:
             if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):  # Sendet den Steuerbefehl zum Ausschalten
                 print("off_all: Relais wurde ausgeschaltet.")  # Gibt eine Bestätigung aus
+                return True
             else:
                 raise RuntimeError(
                     "off_all: Fehler beim Ausschalten der Relais.")  # Fehler, falls das Ausschalten nicht funktioniert

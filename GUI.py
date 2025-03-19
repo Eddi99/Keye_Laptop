@@ -102,6 +102,7 @@ class GUIApp(QWidget):
 		self.setLayout(layout)  # Anwenden des Layouts
 		self.capture_frame()  # aufrufen der capture_frame, nimmt das Bild zur Festlegung der ROIs auf
 
+
 	def capture_frame(self):
 		"""Nimmt Einzelbild zum Setzen der ROIs auf"""
 		cap = self.logic.detector.cap  # Nutze das bereits geöffnete Kamera-Objekt aus keye_detection.py
@@ -193,6 +194,7 @@ class GUIApp(QWidget):
 				self.roi_points[1][0] / self.image_width, self.roi_points[1][1] / self.image_height)
 		roi2 = (self.roi_points[2][0] / self.image_width, self.roi_points[2][1] / self.image_height,
 				self.roi_points[3][0] / self.image_width, self.roi_points[3][1] / self.image_height)
+		print("GUI.confirm_rois: ", roi1, roi2)
 
 		# Ändert die Buttons von den ROI reset und Start zu Relais ein und aus
 		self.confirm_button.setVisible(False)  # Blendet den Start-Button aus
