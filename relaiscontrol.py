@@ -9,6 +9,8 @@ class RelaisControl:
         self.device = None  # Initialisiert das Gerät als None, bevor es erkannt wird
         self.report = None  # Initialisiert das Report-Objekt als None, bevor es geladen wird
 
+        self.relais_bool = False # gibt der GUI auskunft über den derzeitigen Schaltstatus des Relais
+
         try:
             self.get_hid_usb_relay()  # Sucht nach dem passenden HID-Relaisgerät
             self.open_device()  # Öffnet die Verbindung zum gefundenen Gerät
@@ -84,6 +86,7 @@ class RelaisControl:
         """Schaltet alle Relais ein. Falls der Befehl nicht gesendet werden kann, wird eine Fehlermeldung ausgegeben."""
         try:
             if self.write_row_data([0, 0xFE, 0, 0, 0, 0, 0, 0, 1]):  # Sendet den Steuerbefehl zum Einschalten
+                self.relais_bool = True # GUI kann ablesen, dass das Relais eingeschaltet ist
                 print("on_all: Relais wurde eingeschaltet.")  # Gibt eine Bestätigung aus
                 return True
             else:
@@ -97,6 +100,7 @@ class RelaisControl:
         """Schaltet alle Relais aus. Falls der Befehl nicht gesendet werden kann, wird eine Fehlermeldung ausgegeben."""
         try:
             if self.write_row_data([0, 0xFC, 0, 0, 0, 0, 0, 0, 1]):  # Sendet den Steuerbefehl zum Ausschalten
+                self.relais_bool = False # GUI kann ablesen, dass das Relais ausgeschaltet ist
                 print("off_all: Relais wurde ausgeschaltet.")  # Gibt eine Bestätigung aus
                 return True
             else:

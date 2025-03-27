@@ -10,7 +10,7 @@ import time
 
 class ObjectDetection:
     def __init__(self, model_path="yolo11s_ncnn_model"):
-        self.cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # DirectShow verwenden
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # DirectShow verwenden
         self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # MJPEG-Format erzwingen
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
