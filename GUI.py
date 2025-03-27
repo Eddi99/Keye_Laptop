@@ -28,6 +28,7 @@ class GUIApp(QWidget):
 		self.exit_button = None # Button zum Beenden des Programms
 		self.start_detection_bool = True  # Überprüfungsvariable zum nur einmaligen Abschicken der ROI
 		self.last_relais_state = self.logic.relais.relais_bool # Speichert den letzten bekannten Status des Relais
+		self.set_index_once = True # Variable verhindert, dass bei keiner angeschlossenen Kamera Endlosschleife entsteht
 
 		self.initUI()  # Initialisiert die Benutzeroberfläche
 
@@ -196,11 +197,14 @@ class GUIApp(QWidget):
 			frame = cv2.flip(frame, 1)  # Spiegelt das Bild horizontal
 			self.image = cv2.resize(frame,(self.image_width, self.image_height))  # Skaliert das Bild auf die Fenstergröße
 			self.show_frame()  # Zeigt das Bild im GUI-Fenster an
+			self.set_index_once = True
 
 		else:
-			self.camera_selector.setCurrentIndex(0)  # setzt automatisch "Kamera 0" wenn gewählte kamera nicht verfügbar
-			self.set_camera_index()
-			print("Kamerabild konnte nicht geladen werden")  # Fehlerausgabe, falls kein Bild aufgenommen werden konnte
+			if self.set_index_once:
+				self.set_index_once = False
+				self.camera_selector.setCurrentIndex(0)  # setzt automatisch "Kamera 0" wenn gewählte kamera nicht verfügbar
+				self.set_camera_index()
+				print("Kamerabild konnte nicht geladen werden")  # Fehlerausgabe, falls kein Bild aufgenommen werden konnte
 
 	def show_frame(self):
 		"""Zeigt das Bild aus capture_frame zum Setzen der ROIs in der UI an"""
